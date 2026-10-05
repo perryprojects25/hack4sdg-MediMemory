@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* Light, high-contrast theme only: older users need strong contrast. */
+@theme inline {
+  /* System fonts that include Traditional Chinese characters on every platform. */
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang HK",
+    "Microsoft JhengHei", "Noto Sans TC", Arial, sans-serif;
+}
+
+body {
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: var(--font-sans);
+}
