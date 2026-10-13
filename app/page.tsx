@@ -7,9 +7,9 @@ import { useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  CircleCheckBig,
   CirclePlay,
   FileText,
-  Hand,
   HeartHandshake,
   KeyRound,
   ListPlus,
@@ -28,7 +28,7 @@ const SECONDARY_LINKS: { href: string; icon: LucideIcon; titleKey: TranslationKe
 
 const STEPS: { icon: LucideIcon; key: TranslationKey }[] = [
   { icon: ListPlus, key: "lpStep1" },
-  { icon: Hand, key: "lpStep2" },
+  { icon: CircleCheckBig, key: "lpStep2" },
   { icon: FileText, key: "lpStep3" },
 ];
 
@@ -106,20 +106,28 @@ export default function Home() {
         ))}
       </ul>
 
-      {/* How it works */}
+      {/* How it works: information only, so the cards are deliberately not button-like */}
       <section aria-labelledby="how-it-works" className="mt-6">
-        <h2 id="how-it-works" className="text-2xl font-bold text-slate-900">
+        <h2 id="how-it-works" className="text-center text-2xl font-bold text-slate-900">
           {t("lpHowTitle")}
         </h2>
-        <ol className="mt-3 grid gap-3 md:grid-cols-3">
+        <ol className="mt-3 grid gap-3 sm:grid-cols-3">
           {STEPS.map(({ icon: Icon, key }, i) => (
-            <li key={key} className="flex items-center gap-3 rounded-2xl bg-teal-50 px-4 py-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-teal-700 ring-2 ring-teal-200">
-                <Icon aria-hidden="true" className="h-6 w-6" />
+            <li
+              key={key}
+              className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+            >
+              {/* Icon with a small step-number badge (the list itself carries the order for screen readers) */}
+              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-800 ring-2 ring-teal-200">
+                <Icon aria-hidden="true" className="h-6 w-6" strokeWidth={2.25} />
+                <span
+                  aria-hidden="true"
+                  className="absolute -left-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-teal-800 text-sm font-bold text-white"
+                >
+                  {i + 1}
+                </span>
               </span>
-              <p className="text-balance text-lg text-slate-900">
-                <span className="font-bold text-teal-800">{i + 1}.</span> {t(key)}
-              </p>
+              <p className="text-balance text-lg text-slate-900">{t(key)}</p>
             </li>
           ))}
         </ol>

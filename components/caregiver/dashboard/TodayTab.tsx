@@ -11,7 +11,7 @@ import { formatTime } from "@/lib/time";
 import type { Patient } from "@/lib/types";
 import PillIcon from "@/components/PillIcon";
 import { Card, ErrorBox } from "@/components/ui";
-import StatusChip, { LOGGED_BY_KEY } from "./StatusChip";
+import StatusChip from "./StatusChip";
 import type { PatientData } from "./usePatientData";
 
 const CAN_MARK = new Set(["due", "late", "missed", "snoozed"]);
@@ -30,6 +30,16 @@ export default function TodayTab({
   const [problem, setProblem] = useState(false);
 
   const today = hongKongDate(data.loadedAt);
+
+  // Who confirmed a dose, in caregiver wording: their loved one's name, not "the patient".
+  const who = (loggedBy: string | null) =>
+    loggedBy === "voice"
+      ? t("whoVoice", { name: patient.name })
+      : loggedBy === "caregiver"
+        ? t("whoCaregiver")
+        : loggedBy === "auto"
+          ? t("whoApp")
+          : patient.name;
   const doses = data.doses.filter((d) => d.date === today);
   const taken = doses.filter((d) => d.status === "taken").length;
 
@@ -86,7 +96,7 @@ export default function TodayTab({
                       <p className="text-base text-slate-700">
                         {t("loggedAt", {
                           time: formatTime(dose.takenAt, lang),
-                          who: t(LOGGED_BY_KEY[dose.takenBy ?? "patient"]),
+                          who: who(dose.takenBy),
                         })}
                       </p>
                     )}

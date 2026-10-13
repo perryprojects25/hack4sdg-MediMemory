@@ -62,7 +62,7 @@ export default function MedicineForm({
         storage_note: storage.trim() || null,
         times: [...filledTimes].sort(),
       });
-      if (initial) return; // editing: the parent closes the form
+      if (initial) return; // editing: the screen that opened this form closes it
       // Clear the form for the next medicine.
       setName("");
       setDose("");

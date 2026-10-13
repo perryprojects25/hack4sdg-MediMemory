@@ -30,9 +30,3 @@ export default function StatusChip({ status }: { status: DoseStatus }) {
   );
 }
 
-export const LOGGED_BY_KEY: Record<string, TranslationKey> = {
-  patient: "byPatient",
-  caregiver: "byCaregiver",
-  voice: "byVoice",
-  auto: "byAuto",
-};

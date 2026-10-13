@@ -44,7 +44,7 @@ export default function AboutPage() {
         ))}
       </ol>
 
-      <h2 className="mt-10 text-2xl font-bold">🛡️ {t("aboutEthicsTitle")}</h2>
+      <h2 id="privacy-ethics" className="mt-10 scroll-mt-4 text-2xl font-bold">🛡️ {t("aboutEthicsTitle")}</h2>
       <ul className="mt-4 flex flex-col gap-3">
         {ETHICS.map((key) => (
           <li key={key} className="rounded-2xl border-2 border-teal-200 bg-teal-50 p-4 text-lg leading-relaxed">

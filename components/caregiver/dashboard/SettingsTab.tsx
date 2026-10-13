@@ -73,7 +73,7 @@ export default function SettingsTab({
       </Card>
 
       <Card>
-        <h2 className="mb-4 text-2xl font-bold text-slate-900">📱 {t("homeAccess")}</h2>
+        <h2 className="mb-4 text-2xl font-bold text-slate-900">📱 {t("homeAccess", { name: patient.name })}</h2>
         <form
           className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end"
           onSubmit={(e) => {
@@ -109,7 +109,7 @@ export default function SettingsTab({
           pin={patient.pin ?? ""}
           onNewPin={() =>
             run("pin", async () => {
-              if (!window.confirm(t("setNewPinConfirm"))) return null;
+              if (!window.confirm(t("setNewPinConfirm", { name: patient.name }))) return null;
               onPatientChanged(await saveNewPin(patient.id, patient.username ?? username));
               return t("setNewPinDone");
             })
@@ -161,7 +161,7 @@ export default function SettingsTab({
               run("test", async () => {
                 const time = await addTestDose(patient.id);
                 await reload();
-                return t("testDoseDone", { time });
+                return t("testDoseDone", { time, name: patient.name });
               })
             }
           >
