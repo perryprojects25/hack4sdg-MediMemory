@@ -55,6 +55,14 @@ export default function CaregiverApp({
 
   async function loadEverything(signedInUser: User) {
     try {
+      // If the account was deleted (e.g. from another device), the saved sign-in
+      // is no longer valid: sign out quietly and show the sign-in page.
+      const { error: userError } = await getSupabaseBrowser().auth.getUser();
+      if (userError) {
+        await getSupabaseBrowser().auth.signOut({ scope: "local" });
+        setView({ kind: "signedOut" });
+        return;
+      }
       const caregiver = await ensureCaregiver(signedInUser);
       if (demoPending.current) {
         demoPending.current = false;
