@@ -1,13 +1,13 @@
 "use client";
 
-// Landing page. Three roles in priority order:
+// Landing page. Three roles in priority order, all full width so each is easy to find:
 //   1. the patient (big filled button), 2. the family caregiver (outlined button),
-//   3. the doctor (plain text link). The demo is a small link below.
-// Only two button styles (filled, outlined) plus plain text links.
+//   3. the doctor (lighter outlined button: thin grey border).
+// The demo lives on the caregiver page ("I look after someone").
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { CircleCheckBig, FileText, HeartHandshake, ListPlus, Pill, type LucideIcon } from "lucide-react";
+import { CircleCheckBig, FileText, HeartHandshake, ListPlus, Pill, Stethoscope, type LucideIcon } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
 
@@ -60,21 +60,17 @@ export default function Home() {
         </span>
       </Link>
 
-      {/* 3. Doctor link, then the demo link: one centred group of plain text links */}
-      <div className="flex flex-col items-center gap-1 text-balance text-center">
-        <Link
-          href="/doctor"
-          className={`rounded px-1 py-0.5 text-base font-semibold text-teal-800 underline decoration-teal-800/40 underline-offset-4 hover:text-teal-950 hover:decoration-teal-950 ${focusRing}`}
-        >
-          {t("lpDoctorLink")}
-        </Link>
-        <Link
-          href="/caregiver?demo=1"
-          className={`rounded px-1 py-0.5 text-base text-slate-700 underline decoration-slate-400 underline-offset-4 hover:text-slate-900 hover:decoration-slate-900 ${focusRing}`}
-        >
-          {t("lpDemoLink")}
-        </Link>
-      </div>
+      {/* 3. Doctor: same outlined style, but lighter (thin grey border) so it stays third */}
+      <Link
+        href="/doctor"
+        className={`flex min-h-14 items-center gap-4 rounded-3xl border border-slate-300 bg-white px-6 py-2 text-teal-800 transition-colors hover:border-teal-700 hover:bg-teal-50 active:bg-teal-100 ${focusRing}`}
+      >
+        <Stethoscope aria-hidden="true" className="h-7 w-7 shrink-0" strokeWidth={2.25} />
+        <span className="text-base">
+          <span className="font-bold">{t("lpDoctorTitle")}</span>
+          <span className="ml-2 text-slate-700">{t("lpDoctorSub")}</span>
+        </span>
+      </Link>
 
       {/* How it works (information only, not clickable) */}
       <section aria-labelledby="how-it-works">

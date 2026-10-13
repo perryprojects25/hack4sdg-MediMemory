@@ -4,6 +4,7 @@
 // and shows either the setup wizard or the caregiver home screen.
 
 import { useEffect, useRef, useState } from "react";
+import { CirclePlay } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useLanguage } from "@/lib/language";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
@@ -144,6 +145,7 @@ export default function CaregiverApp({
             {t("lpDemoSignIn")}
           </p>
         )}
+        {!demoNote && <DemoPrompt />}
         <Wizard initialStep={1} data={null} linkExpired={cameBackWithLinkError} />
       </Shell>
     );
@@ -205,6 +207,8 @@ export default function CaregiverApp({
 
   return (
     <Shell>
+      {/* Offer the demo while nobody is set up yet (not while adding or editing a person) */}
+      {!adding && !editing && view.patients.length === 0 && <DemoPrompt />}
       <Wizard
         // Start where the caregiver left off.
         initialStep={editing || adding ? 2 : view.patient ? 3 : 2}
@@ -227,6 +231,24 @@ export default function CaregiverApp({
         }}
       />
     </Shell>
+  );
+}
+
+// "Want to look around first? Try the demo →"
+// A full page load on purpose, so /caregiver?demo=1 starts the demo (after sign-in if needed).
+function DemoPrompt() {
+  const { t } = useLanguage();
+  return (
+    <p className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-white px-4 py-3 text-lg text-slate-800 ring-1 ring-slate-200">
+      <CirclePlay aria-hidden="true" className="h-6 w-6 shrink-0 text-teal-700" />
+      {t("cgDemoPrompt")}
+      <a
+        href="/caregiver?demo=1"
+        className="rounded font-semibold text-teal-800 underline underline-offset-4 hover:text-teal-950 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
+      >
+        {t("lpDemoLink")}
+      </a>
+    </p>
   );
 }
 
