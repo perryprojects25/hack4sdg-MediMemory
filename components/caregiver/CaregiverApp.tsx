@@ -3,12 +3,13 @@
 // The caregiver area: works out who is signed in, loads their data,
 // and shows either the setup wizard or the caregiver home screen.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useLanguage } from "@/lib/language";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { ensureCaregiver, loadMedications, loadPatient, loadPatients } from "@/lib/caregiver-data";
 import type { Caregiver, Medication, Patient } from "@/lib/types";
+import { loadDemo } from "@/lib/demo-data";
 import { ErrorBox, PrimaryButton } from "@/components/ui";
 import Wizard from "./Wizard";
 import Dashboard from "./dashboard/Dashboard";
@@ -33,8 +34,12 @@ type View =
       medications: Medication[];
     };
 
-export default function CaregiverApp() {
+export default function CaregiverApp({ startDemo = false }: { startDemo?: boolean }) {
   const { t } = useLanguage();
+  // "Try the demo": load Mrs. Chan once, as soon as the caregiver is signed in.
+  const demoPending = useRef(startDemo);
+  const [demoFailed, setDemoFailed] = useState(false);
+  const [demoNote, setDemoNote] = useState(startDemo); // "preparing" / "sign in first" notes
   const [view, setView] = useState<View>({ kind: "loading" });
   const [user, setUser] = useState<User | null>(null);
   const [editing, setEditing] = useState(false);
@@ -42,6 +47,17 @@ export default function CaregiverApp() {
   async function loadEverything(signedInUser: User) {
     try {
       const caregiver = await ensureCaregiver(signedInUser);
+      if (demoPending.current) {
+        demoPending.current = false;
+        try {
+          await loadDemo(caregiver.id); // also selects Mrs. Chan
+        } catch (err) {
+          console.error(err);
+          setDemoFailed(true);
+        }
+        window.history.replaceState(null, "", "/caregiver"); // don't reload the demo on refresh
+        setDemoNote(false);
+      }
       const [patients, patient] = await Promise.all([loadPatients(caregiver.id), loadPatient(caregiver.id)]);
       const medications = patient ? await loadMedications(patient.id) : [];
       setView({ kind: "ready", caregiver, patients, patient, medications });
@@ -81,7 +97,7 @@ export default function CaregiverApp() {
     return (
       <Shell>
         <p className="text-center text-xl text-slate-800" role="status">
-          {t("loading")}
+          {demoNote ? t("lpDemoPreparing") : t("loading")}
         </p>
       </Shell>
     );
@@ -101,6 +117,11 @@ export default function CaregiverApp() {
   if (view.kind === "signedOut") {
     return (
       <Shell>
+        {demoNote && (
+          <p className="mb-6 rounded-2xl border-2 border-teal-700 bg-teal-50 p-4 text-lg text-slate-900">
+            {t("lpDemoSignIn")}
+          </p>
+        )}
         <Wizard initialStep={1} data={null} linkExpired={cameBackWithLinkError} />
       </Shell>
     );
@@ -116,6 +137,11 @@ export default function CaregiverApp() {
   if (setupFinished && !editing) {
     return (
       <Shell>
+        {demoFailed && (
+          <div className="mb-6">
+            <ErrorBox>{t("lpDemoFailed")}</ErrorBox>
+          </div>
+        )}
         <Dashboard
           key={view.patient!.id} // start fresh when switching patient
           caregiver={view.caregiver}

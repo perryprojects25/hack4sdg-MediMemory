@@ -1,6 +1,7 @@
 import CaregiverApp from "@/components/caregiver/CaregiverApp";
 
-// Caregiver area: setup wizard (Step 3), dashboard comes in Step 6.
-export default function CaregiverPage() {
-  return <CaregiverApp />;
+// Caregiver area: setup wizard and dashboard. "/caregiver?demo=1" loads the demo (Mrs. Chan).
+export default async function CaregiverPage(props: PageProps<"/caregiver">) {
+  const { demo } = await props.searchParams;
+  return <CaregiverApp startDemo={demo === "1"} />;
 }

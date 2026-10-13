@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Pill } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 
 // Simple top bar: app name on the left, language switch on the right.
@@ -9,9 +10,9 @@ export default function TopBar() {
 
   return (
     <header className="border-b-2 border-slate-200 bg-white print:hidden">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <Link href="/" className="flex items-center gap-2 text-2xl font-bold text-teal-800">
-          <span aria-hidden="true">💊</span>
+          <Pill aria-hidden="true" className="h-7 w-7 text-teal-700" />
           {t("appName")}
         </Link>
         <button

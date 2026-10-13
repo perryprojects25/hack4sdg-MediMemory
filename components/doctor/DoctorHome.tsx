@@ -1,11 +1,14 @@
 "use client";
 
-// Doctor area (/doctor): sign in with an email link, then see every summary a
-// caregiver has shared with that email. Read only. Row Level Security only lets a
-// doctor read summaries whose doctor_email matches their signed-in email.
+// Doctor area (/doctor).
+// Main path: paste the summary link the family sent. No account needed.
+// Optional: sign in with an email link to see every summary shared with that email
+// (Row Level Security only lets a doctor read summaries whose doctor_email matches).
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Link2, Mail } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
@@ -38,8 +41,19 @@ export default function DoctorHome() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
-      <h1 className="text-3xl font-bold text-slate-900">🩺 {t("doctorInfoTitle")}</h1>
+      <h1 className="text-3xl font-bold text-slate-900">{t("doctorInfoTitle")}</h1>
       <div className="mt-6">
+        <OpenByLink />
+      </div>
+
+      {/* Optional: see all summaries shared with your email */}
+      <details className="group mt-6 rounded-3xl border-2 border-slate-200 bg-white p-6" open={Boolean(user)}>
+        <summary className="flex cursor-pointer list-none items-center gap-3 text-xl font-semibold text-slate-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300">
+          <Mail aria-hidden="true" className="h-6 w-6 shrink-0 text-teal-700" />
+          <span className="flex-1 underline-offset-4 hover:underline">{t("docEmailOption")}</span>
+          <ArrowRight aria-hidden="true" className="h-6 w-6 shrink-0 text-teal-700 transition-transform group-open:rotate-90" />
+        </summary>
+        <div className="mt-4">
         {!isConfigured ? (
           <ErrorBox>{t("notConfigured")}</ErrorBox>
         ) : user === undefined ? (
@@ -51,8 +65,56 @@ export default function DoctorHome() {
         ) : (
           <SharedList email={user.email ?? ""} />
         )}
-      </div>
+        </div>
+      </details>
     </main>
+  );
+}
+
+// Paste the link (or just the code at its end) and open the summary.
+function OpenByLink() {
+  const { t } = useLanguage();
+  const router = useRouter();
+  const [value, setValue] = useState("");
+  const [invalid, setInvalid] = useState(false);
+
+  function open(event: React.FormEvent) {
+    event.preventDefault();
+    const token = value.trim().toLowerCase().match(/[0-9a-f]{64}/)?.[0];
+    if (!token) return setInvalid(true);
+    router.push(`/doctor/${token}`);
+  }
+
+  return (
+    <Card>
+      <h2 className="flex items-center gap-3 text-2xl font-bold text-slate-900">
+        <Link2 aria-hidden="true" className="h-7 w-7 text-teal-700" />
+        {t("docLinkTitle")}
+      </h2>
+      <p className="mt-2 text-lg text-slate-800">{t("docLinkText")}</p>
+      <form onSubmit={open} noValidate className="mt-4 flex flex-col gap-4">
+        <Field label={t("docLinkLabel")} error={invalid ? t("docLinkInvalid") : undefined}>
+          {(props) => (
+            <input
+              {...props}
+              className={inputClass}
+              value={value}
+              onChange={(e) => {
+                setValue(e.target.value);
+                setInvalid(false);
+              }}
+              placeholder="https://…/doctor/…"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          )}
+        </Field>
+        <PrimaryButton type="submit" className="inline-flex items-center justify-center gap-2 self-start">
+          {t("docLinkOpen")} <ArrowRight aria-hidden="true" className="h-5 w-5" />
+        </PrimaryButton>
+      </form>
+    </Card>
   );
 }
 
@@ -94,9 +156,8 @@ function DoctorSignIn() {
   }
 
   return (
-    <Card>
-      <h2 className="text-2xl font-bold text-slate-900">{t("docSignInTitle")}</h2>
-      <p className="mt-2 text-lg text-slate-800">{t("docSignInText")}</p>
+    <div>
+      <p className="text-lg text-slate-800">{t("docSignInText")}</p>
       <form onSubmit={send} noValidate className="mt-6 flex flex-col gap-5">
         <Field label={t("docEmail")} error={error ? t(error) : undefined}>
           {(props) => (
@@ -115,7 +176,7 @@ function DoctorSignIn() {
           {sending ? t("s1Sending") : t("s1Send")}
         </PrimaryButton>
       </form>
-    </Card>
+    </div>
   );
 }
 

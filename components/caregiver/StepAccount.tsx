@@ -71,7 +71,8 @@ function SignInForm({ linkExpired }: { linkExpired: boolean }) {
     const { error } = await getSupabaseBrowser().auth.signInWithOtp({
       email: cleanEmail,
       options: {
-        emailRedirectTo: `${window.location.origin}/caregiver`,
+        // Come back to the same place (keeps ?demo=1 so the demo opens after sign-in).
+        emailRedirectTo: `${window.location.origin}/caregiver${window.location.search.includes("demo=1") ? "?demo=1" : ""}`,
         data: returning ? undefined : { name: cleanName },
       },
     });
