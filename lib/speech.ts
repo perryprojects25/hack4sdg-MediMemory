@@ -3,7 +3,7 @@
 // Voice features using only what the browser has built in (no paid services).
 // - speak(): reads text aloud with speechSynthesis.
 // - startListening(): listens for "yes" / "taken" (or Cantonese 食咗) with the Web Speech API.
-// Voice is always optional: every action also has a big button.
+// Voice is always optional: every action also has an on-screen button.
 
 import type { Lang } from "./translations";
 

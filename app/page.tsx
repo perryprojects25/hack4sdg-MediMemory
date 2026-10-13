@@ -1,30 +1,17 @@
 "use client";
 
-// Landing page. The caregiver is the main path (set up, or try the demo);
-// patients and doctors have smaller links below. A "How it works" strip explains the idea.
+// Landing page. Three roles in priority order:
+//   1. the patient (big filled button), 2. the family caregiver (outlined button),
+//   3. the doctor (plain text link). The demo is a small link below.
+// Only two button styles (filled, outlined) plus plain text links.
 
 import { useEffect } from "react";
 import Link from "next/link";
-import {
-  ArrowRight,
-  CircleCheckBig,
-  CirclePlay,
-  FileText,
-  HeartHandshake,
-  KeyRound,
-  ListPlus,
-  Stethoscope,
-  type LucideIcon,
-} from "lucide-react";
+import { CircleCheckBig, FileText, HeartHandshake, ListPlus, Pill, type LucideIcon } from "lucide-react";
 import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
 
-const focusRing = "focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300";
-
-const SECONDARY_LINKS: { href: string; icon: LucideIcon; titleKey: TranslationKey; descKey: TranslationKey }[] = [
-  { href: "/patient", icon: KeyRound, titleKey: "lpPatient", descKey: "lpPatientDesc" },
-  { href: "/doctor", icon: Stethoscope, titleKey: "lpDoctor", descKey: "lpDoctorDesc" },
-];
+const focusRing = "focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300 focus-visible:ring-offset-2";
 
 const STEPS: { icon: LucideIcon; key: TranslationKey }[] = [
   { icon: ListPlus, key: "lpStep1" },
@@ -45,89 +32,68 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 sm:py-6">
-      {/* Hero */}
-      <h1 className="text-balance text-3xl font-bold leading-tight text-slate-900 sm:text-4xl">
-        {/* Keep a Chinese quote like 「我食咗藥未？」 on one line */}
-        {t("landingTitle")
-          .split(/(「[^」]*」)/)
-          .map((part, i) =>
-            part.startsWith("「") ? (
-              <span key={i} className="whitespace-nowrap">
-                {part}
-              </span>
-            ) : (
-              part
-            )
-          )}
-      </h1>
-      <p className="mt-2 text-balance text-xl text-slate-800">{t("landingSubtitle")}</p>
+    <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col gap-4 px-4 pb-2 pt-4">
+      <h1 className="text-balance text-4xl font-bold leading-tight text-slate-900">{t("heroTitle")}</h1>
+      <p className="text-balance text-xl text-slate-800">{t("heroSub")}</p>
 
-      {/* Main path: the caregiver */}
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <Link
-          href="/caregiver"
-          className={`inline-flex min-h-16 items-center justify-center gap-3 rounded-full bg-teal-700 px-5 text-lg sm:px-8 sm:text-xl font-semibold text-white shadow-sm transition-colors hover:bg-teal-800 active:bg-teal-900 ${focusRing}`}
-        >
-          <HeartHandshake aria-hidden="true" className="h-7 w-7 shrink-0" />
-          {t("lpSetup")}
-          <ArrowRight aria-hidden="true" className="hidden h-6 w-6 shrink-0 sm:block" />
-        </Link>
-        <Link
-          href="/caregiver?demo=1"
-          className={`inline-flex min-h-16 items-center justify-center gap-3 rounded-full border-2 border-teal-700 bg-white px-5 text-lg sm:px-8 sm:text-xl font-semibold text-teal-800 transition-colors hover:bg-teal-50 active:bg-teal-100 ${focusRing}`}
-        >
-          <CirclePlay aria-hidden="true" className="h-7 w-7 shrink-0" />
-          {t("lpDemo")}
-        </Link>
-      </div>
+      {/* 1. Patient: the first and most obvious thing on the page */}
+      <Link
+        href="/patient"
+        className={`flex min-h-20 items-center gap-4 rounded-3xl bg-teal-700 px-6 py-2.5 text-white transition-colors hover:bg-teal-800 active:bg-teal-900 ${focusRing}`}
+      >
+        <Pill aria-hidden="true" className="h-10 w-10 shrink-0" strokeWidth={2.25} />
+        <span>
+          <span className="block text-2xl font-bold leading-tight">{t("lpPatientTitle")}</span>
+          <span className="block text-lg text-teal-50">{t("lpPatientSub")}</span>
+        </span>
+      </Link>
 
-      {/* Smaller, secondary paths for patients and doctors */}
-      <ul className="mt-5 grid gap-3 md:grid-cols-2">
-        {SECONDARY_LINKS.map(({ href, icon: Icon, titleKey, descKey }) => (
-          <li key={href}>
-            <Link
-              href={href}
-              className={`group flex h-full items-center gap-3 rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 transition-colors hover:border-teal-700 hover:bg-teal-50 ${focusRing}`}
-            >
-              <Icon aria-hidden="true" className="h-7 w-7 shrink-0 text-teal-700" />
-              <span className="flex-1">
-                <span className="block text-lg font-semibold text-slate-900 group-hover:underline group-hover:underline-offset-4">
-                  {t(titleKey)}
-                </span>
-                <span className="block text-base text-slate-700">{t(descKey)}</span>
-              </span>
-              <ArrowRight
-                aria-hidden="true"
-                className="h-6 w-6 shrink-0 text-teal-700 transition-transform group-hover:translate-x-1"
-              />
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {/* 2. Family caregiver: clearly secondary */}
+      <Link
+        href="/caregiver"
+        className={`flex min-h-[72px] items-center gap-4 rounded-3xl border-2 border-teal-700 bg-white px-6 py-2 text-teal-800 transition-colors hover:bg-teal-50 active:bg-teal-100 ${focusRing}`}
+      >
+        <HeartHandshake aria-hidden="true" className="h-8 w-8 shrink-0" strokeWidth={2.25} />
+        <span>
+          <span className="block text-[22px] font-bold leading-tight">{t("lpCaregiverTitle")}</span>
+          <span className="block text-base text-slate-700">{t("lpCaregiverSub")}</span>
+        </span>
+      </Link>
 
-      {/* How it works: information only, so the cards are deliberately not button-like */}
-      <section aria-labelledby="how-it-works" className="mt-6">
+      {/* 3. Doctor: a plain text link */}
+      <Link
+        href="/doctor"
+        className={`self-start rounded text-base font-semibold text-teal-800 underline underline-offset-4 hover:text-teal-950 ${focusRing}`}
+      >
+        {t("lpDoctorLink")}
+      </Link>
+
+      {/* Demo: small and out of the way */}
+      <Link
+        href="/caregiver?demo=1"
+        className={`self-start rounded text-base text-slate-700 underline underline-offset-4 hover:text-slate-900 ${focusRing}`}
+      >
+        {t("lpDemoLink")}
+      </Link>
+
+      {/* How it works (information only, not clickable) */}
+      <section aria-labelledby="how-it-works">
         <h2 id="how-it-works" className="text-center text-2xl font-bold text-slate-900">
           {t("lpHowTitle")}
         </h2>
-        <ol className="mt-3 grid gap-3 sm:grid-cols-3">
+        <ol className="mt-2 grid gap-4 sm:grid-cols-3">
           {STEPS.map(({ icon: Icon, key }, i) => (
-            <li
-              key={key}
-              className="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
-            >
-              {/* Icon with a small step-number badge (the list itself carries the order for screen readers) */}
-              <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-800 ring-2 ring-teal-200">
-                <Icon aria-hidden="true" className="h-6 w-6" strokeWidth={2.25} />
+            <li key={key} className="flex items-center gap-3 sm:flex-col sm:gap-2 sm:text-center">
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-teal-50 text-teal-800">
+                <Icon aria-hidden="true" className="h-5 w-5" strokeWidth={2.25} />
                 <span
                   aria-hidden="true"
-                  className="absolute -left-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-teal-800 text-sm font-bold text-white"
+                  className="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-teal-800 text-xs font-bold text-white"
                 >
                   {i + 1}
                 </span>
               </span>
-              <p className="text-balance text-lg text-slate-900">{t(key)}</p>
+              <p className="text-balance text-lg leading-snug text-slate-900 sm:text-base">{t(key)}</p>
             </li>
           ))}
         </ol>

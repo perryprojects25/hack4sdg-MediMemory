@@ -9,7 +9,7 @@ export default function Footer() {
 
   return (
     <footer className="mt-auto border-t-2 border-slate-200 bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-3 text-center text-base text-slate-700">
+      <div className="mx-auto max-w-5xl px-4 py-2 text-center text-base text-slate-700">
         <p className="inline">{t("footerDisclaimer")}</p>{" "}
         <Link href="/about#privacy-ethics" className="inline-block font-semibold text-teal-800 underline underline-offset-4 hover:text-teal-950 print:hidden">
           {t("footerPrivacy")}
