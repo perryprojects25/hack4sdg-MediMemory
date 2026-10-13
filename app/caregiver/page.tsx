@@ -1,6 +1,6 @@
-import PlaceholderPage from "@/components/PlaceholderPage";
+import CaregiverApp from "@/components/caregiver/CaregiverApp";
 
-// Caregiver dashboard. Built in Steps 3 and 6.
+// Caregiver area: setup wizard (Step 3), dashboard comes in Step 6.
 export default function CaregiverPage() {
-  return <PlaceholderPage icon="🤝" titleKey="caregiverTitle" textKey="caregiverPlaceholder" />;
+  return <CaregiverApp />;
 }

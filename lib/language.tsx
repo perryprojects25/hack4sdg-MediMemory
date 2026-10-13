@@ -31,7 +31,7 @@ function subscribe(onChange: () => void) {
 type LanguageContextValue = {
   lang: Lang;
   toggleLang: () => void;
-  t: (key: TranslationKey) => string;
+  t: (key: TranslationKey, vars?: Record<string, string | number>) => string;
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -52,7 +52,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }
 
-  const t = (key: TranslationKey) => translations[lang][key];
+  // Look up text and fill in {placeholders}, e.g. t("s1SignedInAs", { email }).
+  const t = (key: TranslationKey, vars?: Record<string, string | number>) => {
+    let text: string = translations[lang][key];
+    for (const [name, value] of Object.entries(vars ?? {})) {
+      text = text.replaceAll(`{${name}}`, String(value));
+    }
+    return text;
+  };
 
   return (
     <LanguageContext.Provider value={{ lang, toggleLang, t }}>

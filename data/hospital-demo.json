@@ -1,0 +1,37 @@
+{
+  "_note": "SIMULATED DATA for the hackathon demo. Not a real hospital record or a real integration.",
+  "issued_by": "Demo Public Hospital (simulated)",
+  "prescribed_on": "2026-09-28",
+  "items": [
+    {
+      "name": "Metformin (二甲雙胍)",
+      "dose": "500 mg, 1 tablet",
+      "form": "tablet",
+      "shape": "round",
+      "color": "white",
+      "instructions": "Take with breakfast and dinner. 早餐及晚餐時服用。",
+      "storage_note": "Store below 25°C in a dry place. 存放於攝氏25度以下乾爽處。",
+      "times": ["08:00", "18:00"]
+    },
+    {
+      "name": "Amlodipine (氨氯地平)",
+      "dose": "5 mg, 1 tablet",
+      "form": "tablet",
+      "shape": "oval",
+      "color": "pink",
+      "instructions": "Take once a day in the morning. 每朝服用一次。",
+      "storage_note": "Keep in a cool dry place, away from sunlight. 存放於陰涼乾爽處，避免陽光直射。",
+      "times": ["08:00"]
+    },
+    {
+      "name": "Aspirin low dose (低劑量阿士匹靈)",
+      "dose": "80 mg, 1 tablet",
+      "form": "tablet",
+      "shape": "round",
+      "color": "orange",
+      "instructions": "Take after breakfast. 早餐後服用。",
+      "storage_note": "Keep in the original box, in a dry place. 保留在原裝盒內，存放於乾爽處。",
+      "times": ["09:00"]
+    }
+  ]
+}

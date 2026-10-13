@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
@@ -38,6 +39,15 @@ const roles: {
 
 export default function Home() {
   const { t } = useLanguage();
+
+  // If a caregiver's sign-in email link lands here instead of /caregiver
+  // (Supabase falls back to the home page), pass it on to the caregiver area.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("access_token") || hash.includes("error_code")) {
+      window.location.replace(`/caregiver${hash}`);
+    }
+  }, []);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10">
