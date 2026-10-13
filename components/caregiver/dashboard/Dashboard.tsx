@@ -68,7 +68,7 @@ export default function Dashboard({
       {/* Header with patient switcher */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-lg text-slate-700">{t("dashCaring", { name: caregiver.name })}</p>
+          {caregiver.email && <p className="text-lg text-slate-700">{t("dashCaring", { name: caregiver.name })}</p>}
           <h1 className="text-3xl font-bold text-slate-900">{patient.name}</h1>
         </div>
         <div className="flex flex-wrap items-end gap-3">
