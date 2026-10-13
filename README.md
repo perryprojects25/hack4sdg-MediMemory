@@ -3,9 +3,9 @@
 A medication tracker for older adults in Hong Kong, their family caregivers and their doctors.
 Built as a Hack4SDG 2026 prototype.
 
-- **Patient:** one big reminder at a time, confirmed with one large button (or by voice), read aloud in Cantonese or English. Taking the same dose twice is blocked.
+- **Patient:** signs in on the home page with a username + PIN (or a personal link), then sees one big reminder at a time, confirmed with one large button (or by voice), read aloud in Cantonese or English. Taking the same dose twice is blocked.
 - **Caregiver:** sets up medicines (manual or the simulated hospital import), sees today's doses, adherence charts, duplicate warnings and missed-dose alerts, and writes notes.
-- **Doctor:** a printable, read-only AI summary of the medication history, with the raw log underneath to check every statement.
+- **Doctor:** signs in by email on the home page and sees every summary shared with that email: a printable, read-only AI summary with the raw log underneath to check every statement.
 
 > This tool records and summarises medication intake. It does not provide medical advice.
 > Hospital prescription sync is **simulated for demonstration**. Use fictional data only.
@@ -25,6 +25,7 @@ On Windows PowerShell, type `npm.cmd` instead of `npm` (PowerShell blocks `npm` 
    ```
 2. Create a free project at [supabase.com](https://supabase.com) (region: Singapore).
 3. In Supabase, open **SQL Editor → New query**, paste all of [`supabase/schema.sql`](supabase/schema.sql), and click **Run**.
+   (Already set up with an older version? Run [`supabase/migrations/002_usernames_and_doctor_sharing.sql`](supabase/migrations/002_usernames_and_doctor_sharing.sql) instead.)
 4. In Supabase, open **Authentication → URL Configuration**. Set **Site URL** to `http://localhost:3000` and add the Redirect URL `http://localhost:3000/**`.
 5. Copy `.env.example` to `.env.local` and fill in:
    | Variable | Where to find it |
@@ -49,10 +50,10 @@ On Windows PowerShell, type `npm.cmd` instead of `npm` (PowerShell blocks `npm` 
 
 1. **Caregiver** → sign in with the email link → **Settings → Load demo data**. This loads Mrs. Chan, 78, with 4 medicines and 30 days of history, and a duplicate-aspirin warning on the Medicines tab.
 2. Show the **Today** and **Adherence** tabs.
-3. **Settings → Add a test dose in 1 minute**, then **Copy link**, and open it on a phone and type the PIN shown. After a minute the reminder chimes, is read aloud and shows a notification. Tap **I took it**.
-4. Open the same link in a second tab and tap **I took it** again. The app says *"You already took this one at …"*.
+3. **Settings → Add a test dose in 1 minute**. On a phone, open the site, tap **I take medicine** and sign in as `mrschan` with the PIN shown in Settings. After a minute the reminder chimes, is read aloud and shows a notification. Tap **I took it**.
+4. Sign in the same way in a second tab and tap **I took it** there too. The app says *"You already took this one at …"*.
 5. Back on **Today**, the dose shows as taken (the page refreshes every 20 seconds).
-6. **Doctor summary** → agree to the notice → **Generate** → review → **Create doctor link** → **Open**. Then show the chart, the sources of each medicine, the raw log, and **Print / Save as PDF**.
+6. **Doctor summary** → agree to the notice → **Generate** → review → enter a doctor's email → **Create doctor link**. The doctor taps **I am a doctor** on the home page, signs in with that email and opens the summary. Then show the chart, the sources of each medicine, the raw log, and **Print / Save as PDF**.
 
 ## Deploy to Vercel
 

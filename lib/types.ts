@@ -13,6 +13,7 @@ export type Patient = {
   age: number | null;
   preferred_language: "en" | "zh";
   pin: string | null; // null until setup is finished
+  username: string | null; // patient signs in with username + PIN
   notes: string | null;
 };
 

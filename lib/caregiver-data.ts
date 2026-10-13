@@ -92,13 +92,6 @@ export async function savePatient(
   return must(await query.select().single<Patient>());
 }
 
-export async function savePin(patientId: string, pin: string): Promise<Patient> {
-  const supabase = getSupabaseBrowser();
-  return must(
-    await supabase.from("patients").update({ pin }).eq("id", patientId).select().single<Patient>()
-  );
-}
-
 export async function loadMedications(patientId: string): Promise<Medication[]> {
   const supabase = getSupabaseBrowser();
   const meds = must(
@@ -285,4 +278,44 @@ export async function syncHospitalDemo(patientId: string, current: Medication[])
     added++;
   }
   return added;
+}
+
+// ---------------------------------------------------------------------------
+// Patient sign-in details: username + PIN (each pair must be unique)
+// ---------------------------------------------------------------------------
+
+export const USERNAME_PATTERN = /^[a-z0-9]{3,20}$/;
+
+// Thrown when another patient already uses the same username + PIN pair.
+export class AccessTakenError extends Error {}
+
+// "Mrs. Chan" -> "mrschan"
+export function suggestUsername(name: string): string {
+  const clean = name.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20);
+  return clean.length >= 3 ? clean : `patient${Math.floor(Math.random() * 900 + 100)}`;
+}
+
+export async function saveAccess(patientId: string, username: string, pin: string): Promise<Patient> {
+  const supabase = getSupabaseBrowser();
+  const { data, error } = await supabase
+    .from("patients")
+    .update({ username, pin })
+    .eq("id", patientId)
+    .select()
+    .single<Patient>();
+  if (error?.code === "23505") throw new AccessTakenError("username + PIN already used");
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// A new random PIN for the same username, trying again if that pair is taken.
+export async function saveNewPin(patientId: string, username: string): Promise<Patient> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await saveAccess(patientId, username, generatePin());
+    } catch (err) {
+      if (!(err instanceof AccessTakenError)) throw err;
+    }
+  }
+  throw new AccessTakenError("could not find a free PIN");
 }

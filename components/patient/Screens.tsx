@@ -65,10 +65,12 @@ export function AllDoneScreen({
   patientName,
   nextTime,
   onShowTaken,
+  onSwitchPerson,
 }: {
   patientName: string;
   nextTime: string | null;
   onShowTaken: () => void;
+  onSwitchPerson: () => void;
 }) {
   const { t } = useLanguage();
   const greeting = hongKongHour() < 12 ? t("pGreetingMorning", { name: patientName }) : t("pGreeting", { name: patientName });
@@ -92,6 +94,14 @@ export function AllDoneScreen({
         className={`${bigButton} mt-8 border-4 border-teal-700 bg-white text-teal-900 hover:bg-teal-50 focus-visible:ring-teal-300`}
       >
         📋 {t("pWhatTaken")}
+      </button>
+      {/* For shared devices: sign in as a different person */}
+      <button
+        type="button"
+        onClick={onSwitchPerson}
+        className="mt-8 min-h-12 text-xl font-semibold text-teal-800 underline underline-offset-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
+      >
+        {t("pNotYou", { name: patientName })}
       </button>
     </Center>
   );

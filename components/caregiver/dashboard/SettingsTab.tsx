@@ -6,11 +6,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
-import { generatePin, savePin } from "@/lib/caregiver-data";
+import {
+  AccessTakenError,
+  USERNAME_PATTERN,
+  saveAccess,
+  saveNewPin,
+  suggestUsername,
+} from "@/lib/caregiver-data";
 import { DEMO_MARK, addTestDose, loadDemo, removeDemo } from "@/lib/demo-data";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import type { Caregiver, Patient } from "@/lib/types";
-import { Card, ErrorBox, PrimaryButton, SecondaryButton } from "@/components/ui";
+import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
 import PatientAccess from "../PatientAccess";
 
 export default function SettingsTab({
@@ -34,6 +40,7 @@ export default function SettingsTab({
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [problem, setProblem] = useState<TranslationKey | null>(null);
+  const [username, setUsername] = useState(patient.username ?? suggestUsername(patient.name));
 
   async function run(name: string, action: () => Promise<string | null>) {
     setBusy(name);
@@ -43,7 +50,7 @@ export default function SettingsTab({
       setMessage(await action());
     } catch (err) {
       console.error(err);
-      setProblem("genericError");
+      setProblem(err instanceof AccessTakenError ? "errAccessTaken" : "genericError");
     }
     setBusy(null);
   }
@@ -67,14 +74,46 @@ export default function SettingsTab({
 
       <Card>
         <h2 className="mb-4 text-2xl font-bold text-slate-900">📱 {t("homeAccess")}</h2>
+        <form
+          className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!USERNAME_PATTERN.test(username)) return setProblem("errUsername");
+            run("username", async () => {
+              onPatientChanged(await saveAccess(patient.id, username, patient.pin ?? ""));
+              return t("setUsernameDone");
+            });
+          }}
+        >
+          <div className="flex-1">
+            <Field label={t("s4ChooseUsername")} hint={t("s4UsernameHint")}>
+              {(props) => (
+                <input
+                  {...props}
+                  className={`${inputClass} font-mono`}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20))}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                />
+              )}
+            </Field>
+          </div>
+          <SecondaryButton type="submit" disabled={busy !== null || username === patient.username}>
+            {busy === "username" ? t("saving") : t("setUsernameSave")}
+          </SecondaryButton>
+        </form>
         <PatientAccess
           patientId={patient.id}
+          username={patient.username ?? ""}
           pin={patient.pin ?? ""}
-          onNewPin={() => run("pin", async () => {
-            if (!window.confirm(t("setNewPinConfirm"))) return null;
-            onPatientChanged(await savePin(patient.id, generatePin()));
-            return t("setNewPinDone");
-          })}
+          onNewPin={() =>
+            run("pin", async () => {
+              if (!window.confirm(t("setNewPinConfirm"))) return null;
+              onPatientChanged(await saveNewPin(patient.id, patient.username ?? username));
+              return t("setNewPinDone");
+            })
+          }
         />
       </Card>
 

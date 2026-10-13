@@ -12,11 +12,17 @@ const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "delete
 
 export default function PinScreen({
   wrongPin,
+  wrongMessage,
   busy,
+  username,
+  onChangeUsername,
   onSubmit,
 }: {
   wrongPin: boolean;
+  wrongMessage?: string;
   busy: boolean;
+  username?: string; // shown when signing in without a link
+  onChangeUsername?: () => void;
   onSubmit: (pin: string) => void;
 }) {
   const { t } = useLanguage();
@@ -49,6 +55,20 @@ export default function PinScreen({
   return (
     <Center>
       <div className="text-6xl" aria-hidden="true">🔒</div>
+      {username && (
+        <p className="mt-2 text-2xl text-slate-900">
+          👤 <span className="font-mono font-bold">{username}</span>{" "}
+          {onChangeUsername && (
+            <button
+              type="button"
+              onClick={onChangeUsername}
+              className="ml-2 min-h-11 rounded-full px-3 text-xl font-semibold text-teal-800 underline underline-offset-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
+            >
+              {t("pChange")}
+            </button>
+          )}
+        </p>
+      )}
       <h1 className="mt-2 text-3xl font-bold text-slate-900">{t("pEnterPin")}</h1>
 
       {/* Four boxes that fill in as numbers are pressed */}
@@ -67,7 +87,7 @@ export default function PinScreen({
 
       {wrongPin && (
         <p role="alert" className="mt-4 text-2xl font-semibold text-red-800">
-          {t("pWrongPin")}
+          {wrongMessage ?? t("pWrongPin")}
         </p>
       )}
 

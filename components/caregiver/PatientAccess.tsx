@@ -14,10 +14,12 @@ export function patientLink(patientId: string): string {
 
 export default function PatientAccess({
   patientId,
+  username,
   pin,
   onNewPin,
 }: {
   patientId: string;
+  username: string;
   pin: string;
   onNewPin?: () => void;
 }) {
@@ -37,6 +39,15 @@ export default function PatientAccess({
 
   return (
     <div className="flex flex-col gap-6">
+      <p className="rounded-2xl border-2 border-teal-700 bg-teal-50 p-4 text-lg text-slate-900">
+        🏠 {t("s4LoginHint")}
+      </p>
+
+      <div>
+        <h3 className="text-xl font-semibold text-slate-900">{t("s4Username")}</h3>
+        <p className="mt-2 font-mono text-4xl font-bold text-slate-900">{username || "—"}</p>
+      </div>
+
       <div>
         <h3 className="text-xl font-semibold text-slate-900">{t("s4Pin")}</h3>
         <p
@@ -58,6 +69,7 @@ export default function PatientAccess({
         </div>
         <div className="min-w-0">
           <h3 className="text-xl font-semibold text-slate-900">{t("s4Link")}</h3>
+          <p className="mt-1 text-base text-slate-700">{t("s4LinkOptional")}</p>
           <p className="mt-2 break-all rounded-xl bg-slate-100 p-3 font-mono text-base text-slate-900">
             {link}
           </p>

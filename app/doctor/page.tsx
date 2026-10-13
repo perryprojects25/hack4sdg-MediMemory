@@ -1,6 +1,6 @@
-import PlaceholderPage from "@/components/PlaceholderPage";
+import DoctorHome from "@/components/doctor/DoctorHome";
 
-// /doctor without a link code: explains how doctors open a summary.
-export default function DoctorInfoPage() {
-  return <PlaceholderPage icon="🩺" titleKey="doctorInfoTitle" textKey="doctorInfoText" />;
+// Doctor area: sign in by email and see summaries caregivers have shared with you.
+export default function DoctorPage() {
+  return <DoctorHome />;
 }

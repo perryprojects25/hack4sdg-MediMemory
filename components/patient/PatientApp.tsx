@@ -9,6 +9,7 @@ import type { Dose, LogResult, PatientInfo } from "@/lib/patient-server";
 import { speak } from "@/lib/speech";
 import { formatTime } from "@/lib/time";
 import PinScreen from "./PinScreen";
+import UsernameScreen from "./UsernameScreen";
 import DoseScreen from "./DoseScreen";
 import { AllDoneScreen, Center, MessageScreen, TakenListScreen } from "./Screens";
 
@@ -22,8 +23,9 @@ type Credentials = { id: string; pin: string };
 
 type View =
   | { kind: "loading" }
-  | { kind: "noLink" }
-  | { kind: "pin"; id: string; wrongPin: boolean }
+  | { kind: "username" } // sign in without a link: username first...
+  | { kind: "loginPin"; username: string; wrong: boolean } // ...then the PIN
+  | { kind: "pin"; id: string; wrongPin: boolean } // opened from the personal link
   | { kind: "problem" }
   | { kind: "home" }
   | { kind: "success"; name: string; time: string }
@@ -81,7 +83,7 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
       await Promise.resolve(); // let the first screen paint before we start
       const saved = readDevice();
       const id = linkId ?? saved?.id ?? null;
-      if (!id) return setView({ kind: "noLink" });
+      if (!id) return setView({ kind: "username" });
       if (!saved || saved.id !== id) return setView({ kind: "pin", id, wrongPin: false });
 
       try {
@@ -134,6 +136,35 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
     }
   }
 
+  // Sign in with username + PIN (no link). Finds the patient, then continues as with a link.
+  async function submitLogin(username: string, pin: string) {
+    setBusy(true);
+    try {
+      const { status, data } = await post<{ id: string }>("/api/patient/login", { username, pin });
+      if (status === 401) return setView({ kind: "loginPin", username, wrong: true });
+      if (status !== 200) return setView({ kind: "problem" });
+      setBusy(false);
+      await submitPin(data.id, pin);
+    } catch {
+      setView({ kind: "problem" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // "Not you?": forget this device and go back to the sign-in screen.
+  function switchPerson() {
+    try {
+      localStorage.removeItem(DEVICE_KEY);
+    } catch {}
+    window.speechSynthesis?.cancel();
+    setCreds(null);
+    setPatient(null);
+    setDoses([]);
+    if (linkId) window.history.replaceState(null, "", "/patient");
+    setView({ kind: "username" });
+  }
+
   // "I took it" or "Remind me later".
   async function answer(dose: Dose, action: "taken" | "snooze", viaVoice = false) {
     if (!creds || busy) return; // busy also stops an accidental double tap
@@ -181,8 +212,20 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
     case "loading":
       return <Center><p className="text-3xl text-slate-800" role="status">{t("loading")}</p></Center>;
 
-    case "noLink":
-      return <MessageScreen icon="🔗" title={t("pNoLink")} />;
+    case "username":
+      return <UsernameScreen onNext={(username) => setView({ kind: "loginPin", username, wrong: false })} />;
+
+    case "loginPin":
+      return (
+        <PinScreen
+          wrongPin={view.wrong}
+          wrongMessage={t("pWrongLogin")}
+          busy={busy}
+          username={view.username}
+          onChangeUsername={() => setView({ kind: "username" })}
+          onSubmit={(pin) => submitLogin(view.username, pin)}
+        />
+      );
 
     case "pin":
       return (
@@ -268,6 +311,7 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
           patientName={patient?.name ?? ""}
           nextTime={nextTimes[0] ? formatTime(nextTimes[0], lang) : null}
           onShowTaken={() => setView({ kind: "takenList" })}
+          onSwitchPerson={switchPerson}
         />
       );
     }

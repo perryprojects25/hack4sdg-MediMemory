@@ -11,10 +11,11 @@ import { addDays, hongKongDate } from "@/lib/doses";
 import type { SummaryContent } from "@/lib/summary";
 import type { Patient } from "@/lib/types";
 import SummaryView from "@/components/SummaryView";
-import { Card, ErrorBox, PrimaryButton, SecondaryButton } from "@/components/ui";
+import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
 
 const CONSENT_KEY = "medimemory-ai-consent";
 const PERIODS = [7, 14, 30] as const;
+const EMAIL_PATTERN = /^[^s@]+@[^s@]+.[^s@]+$/;
 
 type SavedSummary = {
   id: string;
@@ -22,6 +23,7 @@ type SavedSummary = {
   period_end: string;
   created_at: string;
   share_token: string | null;
+  doctor_email: string | null;
 };
 
 export default function SummaryTab({ patient }: { patient: Patient }) {
@@ -36,11 +38,12 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState<SavedSummary[]>([]);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [doctorEmail, setDoctorEmail] = useState("");
 
   const loadSaved = useCallback(async () => {
     const { data } = await getSupabaseBrowser()
       .from("summaries")
-      .select("id, period_start, period_end, created_at, share_token")
+      .select("id, period_start, period_end, created_at, share_token, doctor_email")
       .eq("patient_id", patient.id)
       .order("created_at", { ascending: false });
     setSaved((data as SavedSummary[]) ?? []);
@@ -90,6 +93,11 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
 
   async function createLink() {
     if (!draft) return;
+    const email = doctorEmail.trim().toLowerCase();
+    if (email && !EMAIL_PATTERN.test(email)) {
+      setProblem("errEmailInvalid");
+      return;
+    }
     setSaving(true);
     setProblem(null);
     const { error } = await getSupabaseBrowser().from("summaries").insert({
@@ -97,6 +105,7 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
       period_start: draft.period.start,
       period_end: draft.period.end,
       content_json: draft,
+      doctor_email: email || null, // the doctor sees it in their list after signing in
     });
     setSaving(false);
     if (error) {
@@ -105,13 +114,23 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
       return;
     }
     setDraft(null);
+    setDoctorEmail("");
     await loadSaved();
   }
 
+  // Revoking removes both the link and the doctor's access.
   async function revoke(id: string) {
     if (!window.confirm(t("sumRevokeConfirm"))) return;
-    await getSupabaseBrowser().from("summaries").update({ share_token: null }).eq("id", id);
+    await getSupabaseBrowser().from("summaries").update({ share_token: null, doctor_email: null }).eq("id", id);
     await loadSaved();
+  }
+
+  async function shareWith(id: string, email: string) {
+    const clean = email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(clean)) return false;
+    const { error } = await getSupabaseBrowser().from("summaries").update({ doctor_email: clean }).eq("id", id);
+    if (!error) await loadSaved();
+    return !error;
   }
 
   async function copy(item: SavedSummary) {
@@ -209,6 +228,20 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
         <Card className="border-teal-700">
           <p className="mb-4 rounded-xl bg-teal-50 p-3 text-lg font-semibold text-teal-950">👀 {t("sumReview")}</p>
           <SummaryView content={draft} />
+          <div className="mt-6 max-w-md">
+            <Field label={t("sumDoctorEmail")} hint={t("sumDoctorEmailHint")}>
+              {(props) => (
+                <input
+                  {...props}
+                  type="email"
+                  inputMode="email"
+                  className={inputClass}
+                  value={doctorEmail}
+                  onChange={(e) => setDoctorEmail(e.target.value)}
+                />
+              )}
+            </Field>
+          </div>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             <PrimaryButton onClick={createLink} disabled={saving}>
               {saving ? t("saving") : `🔗 ${t("sumCreateLink")}`}
@@ -235,6 +268,9 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
                   <p className="text-base text-slate-700">
                     {item.share_token ? t("sumLinkActive") : `⛔ ${t("sumLinkRevoked")}`}
                   </p>
+                  {item.share_token && (
+                    <ShareWithDoctor current={item.doctor_email} onShare={(email) => shareWith(item.id, email)} />
+                  )}
                 </div>
                 {item.share_token && (
                   <div className="flex flex-wrap gap-2">
@@ -264,5 +300,60 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
         )}
       </Card>
     </div>
+  );
+}
+
+// Shows who the summary is shared with, and lets the caregiver share it with a doctor's email.
+function ShareWithDoctor({
+  current,
+  onShare,
+}: {
+  current: string | null;
+  onShare: (email: string) => Promise<boolean>;
+}) {
+  const { t } = useLanguage();
+  const [editing, setEditing] = useState(false);
+  const [email, setEmail] = useState(current ?? "");
+  const [invalid, setInvalid] = useState(false);
+
+  if (!editing) {
+    return (
+      <p className="mt-1 text-base text-slate-800">
+        👩‍⚕️ {current ? t("sumSharedWith", { email: current }) : t("sumNotShared")}{" "}
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          className="font-semibold text-teal-800 underline underline-offset-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
+        >
+          {current ? t("sumChangeDoctor") : t("sumShareDoctor")}
+        </button>
+      </p>
+    );
+  }
+
+  return (
+    <form
+      className="mt-2 flex flex-col gap-2 sm:flex-row"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const ok = await onShare(email);
+        setInvalid(!ok);
+        if (ok) setEditing(false);
+      }}
+    >
+      <input
+        type="email"
+        inputMode="email"
+        aria-label={t("sumDoctorEmail")}
+        placeholder={t("sumDoctorEmail")}
+        className={`${inputClass} min-h-12 text-lg`}
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <SecondaryButton type="submit" className="min-h-12 text-lg">
+        {t("sumShareSave")}
+      </SecondaryButton>
+      {invalid && <p className="text-base font-medium text-red-800">{t("errEmailInvalid")}</p>}
+    </form>
   );
 }

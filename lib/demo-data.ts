@@ -105,21 +105,27 @@ export async function loadDemo(
   const firstDay = addDays(today, -HISTORY_DAYS);
   const startedAt = new Date(`${firstDay}T07:00:00${UTC_OFFSET}`).toISOString();
 
-  // 1. Patient
-  const { data: patient, error: patientError } = await supabase
-    .from("patients")
-    .insert({
-      caregiver_id: caregiverId,
-      name: "Mrs. Chan",
-      age: 78,
-      preferred_language: "zh",
-      pin: generatePin(),
-      notes: DEMO_MARK,
-      created_at: startedAt,
-    })
-    .select()
-    .single<Patient>();
-  if (patientError) throw new Error(patientError.message);
+  // 1. Patient (signs in as "mrschan" + PIN; try another PIN if that pair is taken)
+  let patient: Patient | null = null;
+  for (let attempt = 0; attempt < 5 && !patient; attempt++) {
+    const { data, error } = await supabase
+      .from("patients")
+      .insert({
+        caregiver_id: caregiverId,
+        name: "Mrs. Chan",
+        age: 78,
+        preferred_language: "zh",
+        username: "mrschan",
+        pin: generatePin(),
+        notes: DEMO_MARK,
+        created_at: startedAt,
+      })
+      .select()
+      .single<Patient>();
+    if (error && error.code !== "23505") throw new Error(error.message);
+    patient = data;
+  }
+  if (!patient) throw new Error("Could not create the demo patient");
 
   // 2. Medicines and their daily times (added 30 days ago)
   const meds: { id: string; times: readonly string[] }[] = [];

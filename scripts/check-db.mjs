@@ -46,5 +46,16 @@ for (const table of tables) {
   );
 }
 
+// Update 002: patient usernames + doctor sharing
+for (const [table, column] of [["patients", "username"], ["summaries", "doctor_email"]]) {
+  const { error } = await admin.from(table).select(column).limit(1);
+  if (error) ok = false;
+  console.log(
+    error
+      ? `❌ ${table}.${column} is missing: run supabase/migrations/002_usernames_and_doctor_sharing.sql`
+      : `✅ ${table}.${column} exists (update 002 applied)`
+  );
+}
+
 console.log(ok ? "\nAll good: the database is ready." : "\nSomething is not right, see the ❌ lines above.");
 process.exit(ok ? 0 : 1);

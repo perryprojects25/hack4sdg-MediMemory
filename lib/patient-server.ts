@@ -110,6 +110,26 @@ export async function loadPatientDay(
   };
 }
 
+// Usernames: 3-20 lowercase letters or numbers.
+export const USERNAME_PATTERN = /^[a-z0-9]{3,20}$/;
+
+// Sign in without a link: finds the patient whose username AND PIN both match.
+// (Each username + PIN pair is unique in the database.)
+export async function findPatientByLogin(username: unknown, pin: unknown): Promise<string | null> {
+  if (typeof username !== "string" || typeof pin !== "string") return null;
+  const clean = username.trim().toLowerCase();
+  if (!USERNAME_PATTERN.test(clean) || !/^\d{4}$/.test(pin)) return null;
+
+  const { data, error } = await getSupabaseAdmin()
+    .from("patients")
+    .select("id")
+    .eq("username", clean)
+    .eq("pin", pin)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.id ?? null;
+}
+
 export type LogResult =
   | { result: "taken"; takenAt: string }
   | { result: "alreadyTaken"; takenAt: string }
