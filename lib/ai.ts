@@ -15,7 +15,10 @@ import "server-only";
 import OpenAI from "openai";
 
 export class AiError extends Error {
-  constructor(public code: "not_configured" | "bad_output" | "request_failed", message: string) {
+  constructor(
+    public code: "not_configured" | "no_credit" | "bad_key" | "bad_output" | "request_failed",
+    message: string
+  ) {
     super(message);
   }
 }
@@ -73,7 +76,11 @@ export async function generateJSON<T>({
       // present; it must never be shown to users or parsed as the answer.
       content = completion.choices[0]?.message?.content;
     } catch (err) {
-      console.error(`AI request failed (attempt ${attempt})`, err);
+      const status = (err as { status?: number }).status;
+      console.error(`AI request failed (attempt ${attempt}, status ${status ?? "none"}):`, (err as Error).message);
+      // Retrying cannot fix these, so stop straight away with a clear reason.
+      if (status === 402) throw new AiError("no_credit", "The AI account has no credit left (402 Insufficient Balance)");
+      if (status === 401 || status === 403) throw new AiError("bad_key", "The AI API key was refused");
       if (attempt === 2) throw new AiError("request_failed", "The AI service did not respond");
       continue;
     }

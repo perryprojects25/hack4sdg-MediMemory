@@ -78,7 +78,15 @@ export async function POST(request: Request) {
   } catch (err) {
     if (err instanceof AiError) {
       console.error("summary AI error:", err.code, err.message);
-      return Response.json({ error: err.code === "not_configured" ? "ai_not_configured" : "ai_failed" }, { status: 502 });
+      const error =
+        err.code === "not_configured"
+          ? "ai_not_configured"
+          : err.code === "no_credit"
+            ? "ai_no_credit"
+            : err.code === "bad_key"
+              ? "ai_bad_key"
+              : "ai_failed";
+      return Response.json({ error }, { status: 502 });
     }
     console.error("summary failed", err);
     return Response.json({ error: "server" }, { status: 500 });

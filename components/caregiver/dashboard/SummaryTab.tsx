@@ -84,7 +84,16 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
       });
       const body = await response.json();
       if (response.ok) setDraft(body as SummaryContent);
-      else setProblem(body.error === "ai_not_configured" ? "sumNotConfigured" : "sumFailed");
+      else
+        setProblem(
+          body.error === "ai_not_configured"
+            ? "sumNotConfigured"
+            : body.error === "ai_no_credit"
+              ? "sumNoCredit"
+              : body.error === "ai_bad_key"
+                ? "sumBadKey"
+                : "sumFailed"
+        );
     } catch {
       setProblem("sumFailed");
     }
