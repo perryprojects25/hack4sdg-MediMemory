@@ -1,6 +1,7 @@
-import PlaceholderPage from "@/components/PlaceholderPage";
+import PatientApp from "@/components/patient/PatientApp";
 
-// Patient check-in screen. Built properly in Step 4.
-export default function PatientPage() {
-  return <PlaceholderPage icon="💊" titleKey="patientTitle" textKey="patientPlaceholder" />;
+// Patient check-in screen. Opened from the personal link: /patient?id=<patient id>
+export default async function PatientPage(props: PageProps<"/patient">) {
+  const { id } = await props.searchParams;
+  return <PatientApp linkId={typeof id === "string" ? id : null} />;
 }

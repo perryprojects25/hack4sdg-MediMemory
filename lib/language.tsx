@@ -30,6 +30,7 @@ function subscribe(onChange: () => void) {
 
 type LanguageContextValue = {
   lang: Lang;
+  setLang: (lang: Lang) => void;
   toggleLang: () => void;
   t: (key: TranslationKey, vars?: Record<string, string | number>) => string;
 };
@@ -45,12 +46,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.lang = lang === "zh" ? "zh-HK" : "en";
   }, [lang]);
 
-  function toggleLang() {
+  function setLang(next: Lang) {
     try {
-      localStorage.setItem(STORAGE_KEY, lang === "en" ? "zh" : "en");
+      localStorage.setItem(STORAGE_KEY, next);
     } catch {}
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }
+
+  const toggleLang = () => setLang(lang === "en" ? "zh" : "en");
 
   // Look up text and fill in {placeholders}, e.g. t("s1SignedInAs", { email }).
   const t = (key: TranslationKey, vars?: Record<string, string | number>) => {
@@ -62,7 +65,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <LanguageContext.Provider value={{ lang, toggleLang, t }}>
+    <LanguageContext.Provider value={{ lang, setLang, toggleLang, t }}>
       {children}
     </LanguageContext.Provider>
   );
