@@ -60,21 +60,21 @@ export default function Home() {
         </span>
       </Link>
 
-      {/* 3. Doctor: a plain text link */}
-      <Link
-        href="/doctor"
-        className={`self-start rounded text-base font-semibold text-teal-800 underline underline-offset-4 hover:text-teal-950 ${focusRing}`}
-      >
-        {t("lpDoctorLink")}
-      </Link>
-
-      {/* Demo: small and out of the way */}
-      <Link
-        href="/caregiver?demo=1"
-        className={`self-start rounded text-base text-slate-700 underline underline-offset-4 hover:text-slate-900 ${focusRing}`}
-      >
-        {t("lpDemoLink")}
-      </Link>
+      {/* 3. Doctor link, then the demo link: one centred group of plain text links */}
+      <div className="flex flex-col items-center gap-1 text-balance text-center">
+        <Link
+          href="/doctor"
+          className={`rounded px-1 py-0.5 text-base font-semibold text-teal-800 underline decoration-teal-800/40 underline-offset-4 hover:text-teal-950 hover:decoration-teal-950 ${focusRing}`}
+        >
+          {t("lpDoctorLink")}
+        </Link>
+        <Link
+          href="/caregiver?demo=1"
+          className={`rounded px-1 py-0.5 text-base text-slate-700 underline decoration-slate-400 underline-offset-4 hover:text-slate-900 hover:decoration-slate-900 ${focusRing}`}
+        >
+          {t("lpDemoLink")}
+        </Link>
+      </div>
 
       {/* How it works (information only, not clickable) */}
       <section aria-labelledby="how-it-works">
