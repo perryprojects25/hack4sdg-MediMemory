@@ -20,6 +20,7 @@ import type { Caregiver, Patient } from "@/lib/types";
 import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
 import { Trash2 } from "lucide-react";
 import PatientAccess from "../PatientAccess";
+import DeleteAccount from "../DeleteAccount";
 
 export default function SettingsTab({
   caregiver,
@@ -193,6 +194,7 @@ export default function SettingsTab({
       </Card>
 
       <DeletePerson patient={patient} onDeleted={onDeleted} />
+      <DeleteAccount email={caregiver.email} />
     </div>
   );
 }

@@ -34,7 +34,13 @@ type View =
       medications: Medication[];
     };
 
-export default function CaregiverApp({ startDemo = false }: { startDemo?: boolean }) {
+export default function CaregiverApp({
+  startDemo = false,
+  accountDeleted = false,
+}: {
+  startDemo?: boolean;
+  accountDeleted?: boolean;
+}) {
   const { t } = useLanguage();
   // "Try the demo": load Mrs. Chan once, as soon as the caregiver is signed in.
   const demoPending = useRef(startDemo);
@@ -120,6 +126,11 @@ export default function CaregiverApp({ startDemo = false }: { startDemo?: boolea
   if (view.kind === "signedOut") {
     return (
       <Shell>
+        {accountDeleted && (
+          <p role="status" className="mb-6 rounded-2xl border-2 border-green-700 bg-green-50 p-4 text-lg font-semibold text-green-900">
+            {t("accDeleted")}
+          </p>
+        )}
         {demoNote && (
           <p className="mb-6 rounded-2xl border-2 border-teal-700 bg-teal-50 p-4 text-lg text-slate-900">
             {t("lpDemoSignIn")}

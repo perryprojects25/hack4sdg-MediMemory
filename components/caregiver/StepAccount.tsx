@@ -9,6 +9,7 @@ import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { PENDING_NAME_KEY } from "@/lib/caregiver-data";
 import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
 import { WizardNav } from "./Wizard";
+import DeleteAccount from "./DeleteAccount";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -26,6 +27,7 @@ export default function StepAccount({
   // Already signed in: just confirm and move on.
   if (email) {
     return (
+      <div className="flex flex-col gap-6">
       <Card>
         <h1 className="text-3xl font-bold text-slate-900">{t("s1Title")}</h1>
         <p className="mt-4 text-xl text-slate-800">✅ {t("s1SignedInAs", { email })}</p>
@@ -34,6 +36,8 @@ export default function StepAccount({
         </SecondaryButton>
         <WizardNav onNext={onNext} />
       </Card>
+      <DeleteAccount email={email} />
+      </div>
     );
   }
 

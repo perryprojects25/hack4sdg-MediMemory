@@ -348,6 +348,12 @@ export const translations = {
     delConfirmLabel: "To confirm, type {name}",
     delButton: "Delete for good",
     delDone: "{name}'s data has been deleted.",
+    accTitle: "Delete my account",
+    accText:
+      "This deletes your account and everyone you look after in MediMemory, with all their medicines, dose history, notes and doctor summaries. Any doctor links stop working. You can't undo this.",
+    accConfirmLabel: "To confirm, type your email: {email}",
+    accButton: "Delete my account for good",
+    accDeleted: "Your account has been deleted.",
 
     // Doctor info page, About page, errors
     doctorInfoTitle: "For doctors",
@@ -733,6 +739,12 @@ export const translations = {
     delConfirmLabel: "請輸入「{name}」確認",
     delButton: "永久刪除",
     delDone: "已刪除{name}的資料。",
+    accTitle: "刪除我的帳戶",
+    accText:
+      "這會刪除你的帳戶，以及你在藥記通照顧的所有人和他們的藥物、服藥紀錄、備註及醫生摘要。已分享的醫生連結亦會失效。刪除後無法復原。",
+    accConfirmLabel: "請輸入你的電郵確認：{email}",
+    accButton: "永久刪除我的帳戶",
+    accDeleted: "你的帳戶已刪除。",
 
     doctorInfoTitle: "醫生專用",
     notFoundTitle: "找不到頁面",
