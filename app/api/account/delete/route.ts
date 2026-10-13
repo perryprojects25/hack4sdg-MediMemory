@@ -16,8 +16,11 @@ export async function POST(request: Request) {
     if (!user) return Response.json({ error: "unauthorised" }, { status: 401 });
 
     // Extra check: the request must repeat the account's email (typed by the caregiver).
-    const { confirmEmail } = await request.json();
-    if (typeof confirmEmail !== "string" || confirmEmail.trim().toLowerCase() !== user.email?.toLowerCase()) {
+    // A guest trying the demo has no email, so "Leave the demo" skips this check.
+    const { confirmEmail } = await request.json().catch(() => ({}));
+    const emailMatches =
+      typeof confirmEmail === "string" && confirmEmail.trim().toLowerCase() === user.email?.toLowerCase();
+    if (!user.is_anonymous && !emailMatches) {
       return Response.json({ error: "confirm_mismatch" }, { status: 400 });
     }
 

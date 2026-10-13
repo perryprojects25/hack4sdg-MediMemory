@@ -25,5 +25,16 @@ export async function GET(request: Request) {
       console.error("sweep failed for a patient", err);
     }
   }
-  return Response.json({ patients: patients?.length ?? 0, rowsAdded: added });
+  // Tidy up: delete demo guest accounts older than a day (their demo data goes with them).
+  let guestsRemoved = 0;
+  const { data: users } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+  for (const user of users?.users ?? []) {
+    const ageHours = (Date.now() - new Date(user.created_at).getTime()) / 3_600_000;
+    if (user.is_anonymous && ageHours > 24) {
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id);
+      if (!deleteError) guestsRemoved++;
+    }
+  }
+
+  return Response.json({ patients: patients?.length ?? 0, rowsAdded: added, guestsRemoved });
 }

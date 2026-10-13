@@ -11,7 +11,7 @@ import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { ensureCaregiver, loadMedications, loadPatient, loadPatients, selectPatient } from "@/lib/caregiver-data";
 import type { Caregiver, Medication, Patient } from "@/lib/types";
 import { loadDemo } from "@/lib/demo-data";
-import { ErrorBox, PrimaryButton } from "@/components/ui";
+import { ErrorBox, PrimaryButton, SecondaryButton } from "@/components/ui";
 import Wizard from "./Wizard";
 import Dashboard from "./dashboard/Dashboard";
 
@@ -53,6 +53,8 @@ export default function CaregiverApp({
   // Adding another person: remember who was shown before, so Cancel can go back to them.
   const [adding, setAdding] = useState<{ previousId: string | null } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [guestDemoOff, setGuestDemoOff] = useState(false); // anonymous sign-in is switched off in Supabase
+  const [leaving, setLeaving] = useState(false);
 
   async function loadEverything(signedInUser: User) {
     try {
@@ -95,6 +97,7 @@ export default function CaregiverApp({
       setUser(nextUser);
       if (!nextUser) {
         setView({ kind: "signedOut" });
+        if (demoPending.current) setTimeout(() => startGuestDemo(), 0);
         return;
       }
       // Supabase advises not to call it from inside this callback, so wait one tick.
@@ -102,6 +105,50 @@ export default function CaregiverApp({
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // "Try the demo" while signed out: sign in as a temporary guest (no email) and load Mrs. Chan.
+  async function startGuestDemo() {
+    demoPending.current = true;
+    setDemoNote(true);
+    setGuestDemoOff(false);
+    setView({ kind: "loading" });
+    const { error } = await getSupabaseBrowser().auth.signInAnonymously();
+    if (error) {
+      // Usually: "Allow anonymous sign-ins" is off in Supabase (Authentication > Sign In / Providers).
+      console.error("Guest demo could not start:", error.message);
+      demoPending.current = false;
+      setDemoNote(false);
+      setGuestDemoOff(true);
+      setView({ kind: "signedOut" });
+    }
+    // On success, the sign-in listener above loads the demo.
+  }
+
+  // "Try the demo": guests get a temporary account; a signed-in caregiver (nobody set up yet) gets Mrs. Chan in theirs.
+  function beginDemo() {
+    if (!user) return startGuestDemo();
+    demoPending.current = true;
+    setDemoNote(true);
+    setView({ kind: "loading" });
+    loadEverything(user);
+  }
+
+  // "Leave the demo": delete the temporary guest account (and the demo data with it).
+  async function leaveDemo() {
+    setLeaving(true);
+    const supabase = getSupabaseBrowser();
+    const { data } = await supabase.auth.getSession();
+    await fetch("/api/account/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
+      body: "{}",
+    }).catch(() => {});
+    await supabase.auth.signOut({ scope: "local" });
+    try {
+      localStorage.removeItem("medimemory-selected-patient");
+    } catch {}
+    window.location.replace("/");
+  }
 
   if (!isConfigured) {
     return (
@@ -140,12 +187,13 @@ export default function CaregiverApp({
             {t("accDeleted")}
           </p>
         )}
-        {demoNote && (
-          <p className="mb-6 rounded-2xl border-2 border-teal-700 bg-teal-50 p-4 text-lg text-slate-900">
-            {t("lpDemoSignIn")}
+        {guestDemoOff ? (
+          <p role="status" className="mb-6 rounded-2xl border-2 border-teal-700 bg-teal-50 p-4 text-lg text-slate-900">
+            {t("demoGuestOff")}
           </p>
+        ) : (
+          !demoNote && <DemoPrompt onStart={beginDemo} />
         )}
-        {!demoNote && <DemoPrompt />}
         <Wizard initialStep={1} data={null} linkExpired={cameBackWithLinkError} />
       </Shell>
     );
@@ -182,6 +230,14 @@ export default function CaregiverApp({
             <ErrorBox>{t("lpDemoFailed")}</ErrorBox>
           </div>
         )}
+        {user?.is_anonymous && (
+          <div className="mb-6 flex flex-col gap-3 rounded-2xl border-2 border-violet-700 bg-violet-50 p-4 sm:flex-row sm:items-center">
+            <p className="flex-1 text-lg text-slate-900">{t("demoBanner")}</p>
+            <SecondaryButton onClick={leaveDemo} disabled={leaving} className="min-h-12 text-lg">
+              {leaving ? t("saving") : t("demoLeave")}
+            </SecondaryButton>
+          </div>
+        )}
         {notice && (
           <p role="status" className="mb-6 rounded-2xl border-2 border-green-700 bg-green-50 p-4 text-lg font-semibold text-green-900">
             {notice}
@@ -208,7 +264,7 @@ export default function CaregiverApp({
   return (
     <Shell>
       {/* Offer the demo while nobody is set up yet (not while adding or editing a person) */}
-      {!adding && !editing && view.patients.length === 0 && <DemoPrompt />}
+      {!adding && !editing && view.patients.length === 0 && <DemoPrompt onStart={beginDemo} />}
       <Wizard
         // Start where the caregiver left off.
         initialStep={editing || adding ? 2 : view.patient ? 3 : 2}
@@ -234,20 +290,20 @@ export default function CaregiverApp({
   );
 }
 
-// "Want to look around first? Try the demo →"
-// A full page load on purpose, so /caregiver?demo=1 starts the demo (after sign-in if needed).
-function DemoPrompt() {
+// "Want to look around first? Try the demo →" (opens the demo straight away, no email needed)
+function DemoPrompt({ onStart }: { onStart: () => void }) {
   const { t } = useLanguage();
   return (
     <p className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-2xl bg-white px-4 py-3 text-lg text-slate-800 ring-1 ring-slate-200">
       <CirclePlay aria-hidden="true" className="h-6 w-6 shrink-0 text-teal-700" />
       {t("cgDemoPrompt")}
-      <a
-        href="/caregiver?demo=1"
+      <button
+        type="button"
+        onClick={onStart}
         className="rounded font-semibold text-teal-800 underline underline-offset-4 hover:text-teal-950 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
       >
         {t("lpDemoLink")}
-      </a>
+      </button>
     </p>
   );
 }

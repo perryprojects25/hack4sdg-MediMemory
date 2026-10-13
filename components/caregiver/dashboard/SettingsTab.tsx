@@ -190,11 +190,13 @@ export default function SettingsTab({
           </Link>
           <SecondaryButton onClick={() => getSupabaseBrowser().auth.signOut()}>{t("signOut")}</SecondaryButton>
         </div>
-        <p className="mt-3 text-base text-slate-700">{t("s1SignedInAs", { email: caregiver.email })}</p>
+        {caregiver.email && (
+          <p className="mt-3 text-base text-slate-700">{t("s1SignedInAs", { email: caregiver.email })}</p>
+        )}
       </Card>
 
       <DeletePerson patient={patient} onDeleted={onDeleted} />
-      <DeleteAccount email={caregiver.email} />
+      {caregiver.email && <DeleteAccount email={caregiver.email} />}
     </div>
   );
 }

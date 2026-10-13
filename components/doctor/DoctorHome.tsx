@@ -34,7 +34,8 @@ export default function DoctorHome() {
   useEffect(() => {
     if (!isConfigured) return;
     const { data } = getSupabaseBrowser().auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const signedIn = session?.user ?? null;
+      setUser(signedIn && !signedIn.is_anonymous ? signedIn : null); // a demo guest is not a doctor
     });
     return () => data.subscription.unsubscribe();
   }, []);

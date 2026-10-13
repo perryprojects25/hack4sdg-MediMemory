@@ -36,14 +36,15 @@ export async function ensureCaregiver(user: User): Promise<Caregiver> {
 
   let name: string | null = null;
   try {
-    name = localStorage.getItem(PENDING_NAME_KEY);
+    // A guest trying the demo has no email and no name.
+    name = user.is_anonymous ? "Demo visitor" : localStorage.getItem(PENDING_NAME_KEY);
   } catch {}
-  name = name || (user.user_metadata?.name as string | undefined) || user.email!.split("@")[0];
+  name = name || (user.user_metadata?.name as string | undefined) || (user.email ?? "").split("@")[0] || "Caregiver";
 
   const created = must(
     await supabase
       .from("caregivers")
-      .insert({ id: user.id, email: user.email, name })
+      .insert({ id: user.id, email: user.email ?? "", name })
       .select()
       .single<Caregiver>()
   );
