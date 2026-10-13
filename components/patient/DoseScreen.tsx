@@ -9,6 +9,7 @@ import { MAX_SNOOZES } from "@/lib/dose-rules";
 import { colorOption, shapeOption } from "@/lib/medicine-options";
 import type { Dose } from "@/lib/patient-server";
 import { canListen, speak, startListening } from "@/lib/speech";
+import { playChime, showNotification } from "@/lib/reminders";
 import { formatTime } from "@/lib/time";
 import PillIcon from "@/components/PillIcon";
 import { Center } from "./Screens";
@@ -38,11 +39,17 @@ export default function DoseScreen({
   const spokenText = t("pSpokenDose", { name: dose.name, dose: dose.dose, pill });
   const canSnooze = dose.snoozeCount < MAX_SNOOZES;
 
-  // Read the reminder aloud when this dose appears.
-  // (Browsers may block this until the person has tapped the page once; "Read again" always works.)
+  // When this dose appears: gentle chime, then read it aloud, plus a browser
+  // notification if the page is in the background.
+  // (Browsers may block sound until the person has tapped the page once; "Read again" always works.)
   useEffect(() => {
-    speak(spokenText, lang);
-  }, [spokenText, lang]);
+    playChime();
+    const timer = setTimeout(() => speak(spokenText, lang), 900);
+    if (document.visibilityState !== "visible") showNotification(t("pTimeFor"), `${dose.name} · ${dose.dose}`);
+    return () => clearTimeout(timer);
+    // Only when a new dose appears, not when the language changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dose.medicationId, dose.scheduledFor]);
 
   function listen() {
     setNotUnderstood(false);

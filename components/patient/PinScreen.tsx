@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/lib/language";
+import { askNotificationPermission } from "@/lib/reminders";
 import { Center } from "./Screens";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "delete"] as const;
@@ -27,6 +28,7 @@ export default function PinScreen({
     if (key === "delete") return setPin(pin.slice(0, -1));
     const next = (pin + key).slice(0, 4);
     if (next.length === 4) {
+      askNotificationPermission(); // asked during a tap, so the browser shows the prompt
       setPin("");
       onSubmit(next);
     } else {

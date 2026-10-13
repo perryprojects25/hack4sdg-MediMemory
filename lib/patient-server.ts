@@ -5,26 +5,26 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "./supabase/admin";
+import { MAX_SNOOZES, SNOOZE_MINUTES } from "./dose-rules";
 import {
-  MAX_SNOOZES,
-  MISSED_AFTER_MINUTES,
-  SNOOZE_MINUTES,
-  TIME_ZONE,
-  UTC_OFFSET,
-} from "./dose-rules";
+  LOG_COLUMNS,
+  MED_COLUMNS,
+  buildDoses,
+  dayStartISO,
+  addDays,
+  hongKongDate,
+  type DoseInstance,
+  type LogForDoses,
+  type MedForDoses,
+} from "./doses";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MINUTE = 60 * 1000;
 
 export type PatientInfo = { id: string; name: string; preferred_language: "en" | "zh" };
 
-// What the patient screen needs to know about each of today's doses.
-export type DoseStatus =
-  | "upcoming" // not time yet
-  | "due" // time to take it now
-  | "snoozed" // "Remind me later" was pressed
-  | "taken"
-  | "closed"; // missed or skipped, or too long ago to take now
+// The patient screen only needs a simpler status than the caregiver.
+export type PatientDoseStatus = "upcoming" | "due" | "snoozed" | "taken" | "closed";
 
 export type Dose = {
   medicationId: string;
@@ -34,28 +34,35 @@ export type Dose = {
   color: string | null;
   instructions: string | null;
   scheduledFor: string; // ISO time
-  status: DoseStatus;
+  status: PatientDoseStatus;
   takenAt: string | null;
   snoozeCount: number;
   snoozedUntil: string | null;
 };
 
-// Today's date in Hong Kong, e.g. "2026-10-13".
-function hongKongDate(now: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(now);
-}
+function toPatientDose(d: DoseInstance, now: Date): Dose {
+  let status: PatientDoseStatus;
+  if (d.status === "taken") status = "taken";
+  else if (d.status === "missed" || d.status === "skipped") status = "closed";
+  else if (d.status === "upcoming") status = "upcoming";
+  // due, late or snoozed: show it again unless a snooze is still running
+  else if (d.snoozedUntil && new Date(d.snoozedUntil) > now) status = "snoozed";
+  else status = "due";
 
-type LogRow = { medication_id: string; scheduled_for: string; status: string; logged_at: string };
-type MedRow = {
-  id: string;
-  name: string;
-  dose: string;
-  shape: string | null;
-  color: string | null;
-  instructions: string | null;
-  active: boolean;
-  schedules: { time_of_day: string; days_of_week: number[] }[];
-};
+  return {
+    medicationId: d.med.id,
+    name: d.med.name,
+    dose: d.med.dose,
+    shape: d.med.shape,
+    color: d.med.color,
+    instructions: d.med.instructions,
+    scheduledFor: d.scheduledFor,
+    status,
+    takenAt: d.takenAt,
+    snoozeCount: d.snoozeCount,
+    snoozedUntil: d.snoozedUntil,
+  };
+}
 
 // Checks the id and PIN and, if they match, returns the patient and today's doses.
 // Returns null if they don't match. Everything is fetched in ONE round trip to the
@@ -70,83 +77,36 @@ export async function loadPatientDay(
 
   const supabase = getSupabaseAdmin();
   const today = hongKongDate(now);
-  const dayStart = new Date(`${today}T00:00:00${UTC_OFFSET}`);
-  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * MINUTE);
-  // Noon in Hong Kong is still the same date in UTC, so getUTCDay gives the Hong Kong weekday.
-  const weekday = new Date(`${today}T12:00:00${UTC_OFFSET}`).getUTCDay();
 
   const [patientResult, logsResult] = await Promise.all([
     supabase
       .from("patients")
-      .select(
-        "id, name, preferred_language, pin, medications(id, name, dose, shape, color, instructions, active, schedules(time_of_day, days_of_week))"
-      )
+      .select(`id, name, preferred_language, pin, medications(${MED_COLUMNS})`)
       .eq("id", id)
       .maybeSingle(),
     supabase
       .from("intake_logs")
-      .select("medication_id, scheduled_for, status, logged_at")
+      .select(LOG_COLUMNS)
       .eq("patient_id", id)
-      .gte("scheduled_for", dayStart.toISOString())
-      .lt("scheduled_for", dayEnd.toISOString()),
+      .gte("scheduled_for", dayStartISO(today))
+      .lt("scheduled_for", dayStartISO(addDays(today, 1))),
   ]);
   if (patientResult.error) throw new Error(patientResult.error.message);
   if (logsResult.error) throw new Error(logsResult.error.message);
 
   const row = patientResult.data;
   if (!row || row.pin !== pin) return null; // the logs are thrown away if the PIN is wrong
-  const logs = (logsResult.data ?? []) as LogRow[];
 
-  const doses: Dose[] = [];
-  for (const med of (row.medications ?? []) as MedRow[]) {
-    if (!med.active) continue;
-    for (const schedule of med.schedules) {
-      if (!schedule.days_of_week.includes(weekday)) continue;
-
-      const scheduledFor = new Date(`${today}T${schedule.time_of_day}${UTC_OFFSET}`);
-      const doseLogs = logs.filter(
-        (log) =>
-          log.medication_id === med.id &&
-          new Date(log.scheduled_for).getTime() === scheduledFor.getTime()
-      );
-      doses.push({
-        medicationId: med.id,
-        name: med.name,
-        dose: med.dose,
-        shape: med.shape,
-        color: med.color,
-        instructions: med.instructions,
-        scheduledFor: scheduledFor.toISOString(),
-        ...doseState(scheduledFor, doseLogs, now),
-      });
-    }
-  }
+  const doses = buildDoses(
+    (row.medications ?? []) as MedForDoses[],
+    (logsResult.data ?? []) as LogForDoses[],
+    [today],
+    now
+  );
 
   return {
     patient: { id: row.id, name: row.name, preferred_language: row.preferred_language },
-    doses: doses.sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor)),
-  };
-}
-
-function doseState(scheduledFor: Date, logs: LogRow[], now: Date) {
-  const taken = logs.find((log) => log.status === "taken");
-  const snoozes = logs.filter((log) => log.status === "snoozed");
-  const lastSnooze = snoozes.map((log) => new Date(log.logged_at).getTime()).sort().at(-1);
-  const snoozedUntil = lastSnooze ? new Date(lastSnooze + SNOOZE_MINUTES * MINUTE) : null;
-
-  let status: DoseStatus;
-  if (taken) status = "taken";
-  else if (logs.some((log) => log.status === "missed" || log.status === "skipped")) status = "closed";
-  else if (now < scheduledFor) status = "upcoming";
-  else if (now.getTime() > scheduledFor.getTime() + MISSED_AFTER_MINUTES * MINUTE) status = "closed";
-  else if (snoozedUntil && snoozedUntil > now) status = "snoozed";
-  else status = "due";
-
-  return {
-    status,
-    takenAt: taken?.logged_at ?? null,
-    snoozeCount: snoozes.length,
-    snoozedUntil: snoozedUntil?.toISOString() ?? null,
+    doses: doses.map((d) => toPatientDose(d, now)),
   };
 }
 
@@ -168,7 +128,7 @@ export async function logDose(
   viaVoice: boolean
 ): Promise<LogResult> {
   if (typeof medicationId !== "string" || !UUID_PATTERN.test(medicationId)) return { result: "invalid" };
-  if (typeof scheduledForInput !== "string") return { result: "invalid" };
+  if (typeof scheduledForInput !== "string" || isNaN(Date.parse(scheduledForInput))) return { result: "invalid" };
   if (action !== "taken" && action !== "snooze") return { result: "invalid" };
 
   // Only accept doses that really are on today's list for this patient.
