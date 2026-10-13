@@ -29,10 +29,12 @@ export default function Wizard({
   initialStep,
   data,
   linkExpired = false,
+  onCancel,
 }: {
   initialStep: number;
   data: WizardData | null; // null = not signed in yet
   linkExpired?: boolean;
+  onCancel?: () => void; // set when adding another person
 }) {
   const { t } = useLanguage();
   const [step, setStep] = useState(initialStep);
@@ -44,6 +46,15 @@ export default function Wizard({
 
   return (
     <div>
+      {onCancel && (
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border-2 border-teal-700 bg-teal-50 p-4 sm:flex-row sm:items-center">
+          <p className="flex-1 text-lg text-slate-900">{t("addingNote")}</p>
+          <SecondaryButton onClick={onCancel} className="min-h-12 text-lg">
+            {t("cancel")}
+          </SecondaryButton>
+        </div>
+      )}
+
       {/* Progress indicator */}
       <p className="text-lg font-semibold text-teal-800">
         {t("stepOf", { n: step, total: TOTAL_STEPS })}
@@ -69,7 +80,7 @@ export default function Wizard({
           <StepAccount email={data?.email ?? null} linkExpired={linkExpired} onNext={() => go(2)} />
         )}
         {data && step === 2 && (
-          <StepPatient data={data} onBack={() => go(1)} onNext={() => go(3)} />
+          <StepPatient data={data} onBack={onCancel ?? (() => go(1))} onNext={() => go(3)} />
         )}
         {data && step === 3 && data.patient && (
           <StepMedicines

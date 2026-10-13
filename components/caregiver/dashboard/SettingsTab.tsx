@@ -10,6 +10,7 @@ import {
   AccessTakenError,
   USERNAME_PATTERN,
   saveAccess,
+  deletePatient,
   saveNewPin,
   suggestUsername,
 } from "@/lib/caregiver-data";
@@ -17,6 +18,7 @@ import { DEMO_MARK, addTestDose, loadDemo, removeDemo } from "@/lib/demo-data";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import type { Caregiver, Patient } from "@/lib/types";
 import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
+import { Trash2 } from "lucide-react";
 import PatientAccess from "../PatientAccess";
 
 export default function SettingsTab({
@@ -26,6 +28,7 @@ export default function SettingsTab({
   onEdit,
   onPatientChanged,
   onEverythingChanged,
+  onDeleted,
   reload,
 }: {
   caregiver: Caregiver;
@@ -34,6 +37,7 @@ export default function SettingsTab({
   onEdit: () => void;
   onPatientChanged: (patient: Patient) => void;
   onEverythingChanged: () => Promise<void>;
+  onDeleted: (name: string) => Promise<void>;
   reload: () => Promise<void>;
 }) {
   const { t } = useLanguage();
@@ -187,6 +191,67 @@ export default function SettingsTab({
         </div>
         <p className="mt-3 text-base text-slate-700">{t("s1SignedInAs", { email: caregiver.email })}</p>
       </Card>
+
+      <DeletePerson patient={patient} onDeleted={onDeleted} />
     </div>
+  );
+}
+
+// Delete this person and all their data. Typing the name is required, because it cannot be undone.
+function DeletePerson({ patient, onDeleted }: { patient: Patient; onDeleted: (name: string) => Promise<void> }) {
+  const { t } = useLanguage();
+  const [typed, setTyped] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const matches = typed.trim().toLowerCase() === patient.name.trim().toLowerCase();
+
+  async function remove() {
+    if (!matches) return;
+    setDeleting(true);
+    setFailed(false);
+    try {
+      await deletePatient(patient.id);
+      await onDeleted(patient.name);
+    } catch (err) {
+      console.error(err);
+      setFailed(true);
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <Card className="border-red-700">
+      <h2 className="flex items-center gap-2 text-2xl font-bold text-red-900">
+        <Trash2 aria-hidden="true" className="h-6 w-6" />
+        {t("delTitle", { name: patient.name })}
+      </h2>
+      <p className="mt-2 text-lg text-slate-900">{t("delText", { name: patient.name })}</p>
+      <div className="mt-4 max-w-md">
+        <Field label={t("delConfirmLabel", { name: patient.name })}>
+          {(props) => (
+            <input
+              {...props}
+              className={inputClass}
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              autoComplete="off"
+            />
+          )}
+        </Field>
+      </div>
+      {failed && (
+        <div className="mt-4">
+          <ErrorBox>{t("genericError")}</ErrorBox>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={remove}
+        disabled={!matches || deleting}
+        className="mt-4 min-h-14 rounded-full bg-red-700 px-8 text-xl font-semibold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:bg-slate-400 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-300"
+      >
+        {deleting ? t("saving") : t("delButton")}
+      </button>
+    </Card>
   );
 }

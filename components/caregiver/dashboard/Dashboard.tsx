@@ -9,6 +9,7 @@ import { selectPatient } from "@/lib/caregiver-data";
 import { DEMO_MARK } from "@/lib/demo-data";
 import { formatTime } from "@/lib/time";
 import type { Caregiver, Patient } from "@/lib/types";
+import { UserPlus } from "lucide-react";
 import { ErrorBox, SecondaryButton } from "@/components/ui";
 import { usePatientData } from "./usePatientData";
 import TodayTab from "./TodayTab";
@@ -36,6 +37,8 @@ export default function Dashboard({
   onEdit,
   onPatientChanged,
   onEverythingChanged,
+  onAddPerson,
+  onDeleted,
 }: {
   caregiver: Caregiver;
   patients: Patient[];
@@ -43,6 +46,8 @@ export default function Dashboard({
   onEdit: () => void;
   onPatientChanged: (patient: Patient) => void;
   onEverythingChanged: () => Promise<void>;
+  onAddPerson: () => void;
+  onDeleted: (name: string) => Promise<void>;
 }) {
   const { t, lang } = useLanguage();
   const [tab, setTab] = useState("today");
@@ -66,6 +71,7 @@ export default function Dashboard({
           <p className="text-lg text-slate-700">{t("dashCaring", { name: caregiver.name })}</p>
           <h1 className="text-3xl font-bold text-slate-900">{patient.name}</h1>
         </div>
+        <div className="flex flex-wrap items-end gap-3">
         {patients.length > 1 && (
           <label className="flex flex-col text-base font-semibold text-slate-800">
             {t("dashSwitch")}
@@ -81,11 +87,17 @@ export default function Dashboard({
                 <option key={p.id} value={p.id}>
                   {p.name}
                   {p.notes === DEMO_MARK ? ` (${t("demoTag")})` : ""}
+                  {!p.pin ? ` (${t("setupUnfinished")})` : ""}
                 </option>
               ))}
             </select>
           </label>
         )}
+          <SecondaryButton onClick={onAddPerson} className="inline-flex min-h-12 items-center gap-2 text-lg">
+            <UserPlus aria-hidden="true" className="h-5 w-5" />
+            {t("dashAddPerson")}
+          </SecondaryButton>
+        </div>
       </div>
 
       {missed.length > 0 && (
@@ -152,6 +164,7 @@ export default function Dashboard({
             onEdit={onEdit}
             onPatientChanged={onPatientChanged}
             onEverythingChanged={onEverythingChanged}
+            onDeleted={onDeleted}
             reload={reload}
           />
         )}

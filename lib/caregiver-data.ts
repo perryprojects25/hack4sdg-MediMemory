@@ -319,3 +319,12 @@ export async function saveNewPin(patientId: string, username: string): Promise<P
   }
   throw new AccessTakenError("could not find a free PIN");
 }
+
+// Deletes a person and everything that belongs to them: medicines, schedules,
+// dose history, notes and doctor summaries (the database removes these with
+// "on delete cascade"). Doctor links stop working. This cannot be undone.
+export async function deletePatient(patientId: string): Promise<void> {
+  const supabase = getSupabaseBrowser();
+  const deleted = must(await supabase.from("patients").delete().eq("id", patientId).select("id"));
+  if (deleted.length === 0) throw new Error("Nothing was deleted");
+}

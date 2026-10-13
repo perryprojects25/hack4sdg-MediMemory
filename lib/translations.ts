@@ -338,6 +338,17 @@ export const translations = {
     aboutLink: "How this works, privacy and ethics",
     footerPrivacy: "Privacy and Ethics",
 
+    // More than one person, and deleting a person
+    dashAddPerson: "Add another person",
+    addingNote: "You're adding another person. Everyone else stays as they are.",
+    setupUnfinished: "setup not finished",
+    delTitle: "Delete {name}'s data",
+    delText:
+      "This deletes {name}, their medicines, dose history, notes and doctor summaries. Any doctor links stop working. You can't undo this.",
+    delConfirmLabel: "To confirm, type {name}",
+    delButton: "Delete for good",
+    delDone: "{name}'s data has been deleted.",
+
     // Doctor info page, About page, errors
     doctorInfoTitle: "For doctors",
     notFoundTitle: "Page not found",
@@ -713,6 +724,15 @@ export const translations = {
     testDoseDone: "已加入 {time} 的測試劑量。請打開{name}的畫面等待提醒。",
     aboutLink: "使用方法、私隱及道德",
     footerPrivacy: "私隱及道德",
+
+    dashAddPerson: "加入另一位親人",
+    addingNote: "你正在加入另一位親人，其他人的資料不會受影響。",
+    setupUnfinished: "未完成設定",
+    delTitle: "刪除{name}的資料",
+    delText: "這會刪除{name}，以及他們的藥物、服藥紀錄、備註和醫生摘要。已分享的醫生連結亦會失效。刪除後無法復原。",
+    delConfirmLabel: "請輸入「{name}」確認",
+    delButton: "永久刪除",
+    delDone: "已刪除{name}的資料。",
 
     doctorInfoTitle: "醫生專用",
     notFoundTitle: "找不到頁面",

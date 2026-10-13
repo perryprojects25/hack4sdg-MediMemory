@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useLanguage } from "@/lib/language";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
-import { ensureCaregiver, loadMedications, loadPatient, loadPatients } from "@/lib/caregiver-data";
+import { ensureCaregiver, loadMedications, loadPatient, loadPatients, selectPatient } from "@/lib/caregiver-data";
 import type { Caregiver, Medication, Patient } from "@/lib/types";
 import { loadDemo } from "@/lib/demo-data";
 import { ErrorBox, PrimaryButton } from "@/components/ui";
@@ -43,6 +43,9 @@ export default function CaregiverApp({ startDemo = false }: { startDemo?: boolea
   const [view, setView] = useState<View>({ kind: "loading" });
   const [user, setUser] = useState<User | null>(null);
   const [editing, setEditing] = useState(false);
+  // Adding another person: remember who was shown before, so Cancel can go back to them.
+  const [adding, setAdding] = useState<{ previousId: string | null } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function loadEverything(signedInUser: User) {
     try {
@@ -128,19 +131,40 @@ export default function CaregiverApp({ startDemo = false }: { startDemo?: boolea
   }
 
   // Signed in. Helpers that let the wizard update what's on screen.
-  const setPatient = (patient: Patient) =>
+  const setPatient = (patient: Patient) => {
+    if (adding) selectPatient(patient.id); // the new person becomes the one shown
     setView((v) => (v.kind === "ready" ? { ...v, patient } : v));
+  };
+  const reloadAll = () => (user ? loadEverything(user) : Promise.resolve());
+
+  function startAdding() {
+    if (view.kind !== "ready") return;
+    setNotice(null);
+    setAdding({ previousId: view.patient?.id ?? null });
+    setView({ ...view, patient: null, medications: [] });
+  }
+
+  async function cancelAdding() {
+    if (adding?.previousId) selectPatient(adding.previousId);
+    setAdding(null);
+    await reloadAll();
+  }
   const setMedications = (medications: Medication[]) =>
     setView((v) => (v.kind === "ready" ? { ...v, medications } : v));
 
   const setupFinished = Boolean(view.patient?.pin);
-  if (setupFinished && !editing) {
+  if (setupFinished && !editing && !adding) {
     return (
       <Shell>
         {demoFailed && (
           <div className="mb-6">
             <ErrorBox>{t("lpDemoFailed")}</ErrorBox>
           </div>
+        )}
+        {notice && (
+          <p role="status" className="mb-6 rounded-2xl border-2 border-green-700 bg-green-50 p-4 text-lg font-semibold text-green-900">
+            {notice}
+          </p>
         )}
         <Dashboard
           key={view.patient!.id} // start fresh when switching patient
@@ -149,7 +173,12 @@ export default function CaregiverApp({ startDemo = false }: { startDemo?: boolea
           patient={view.patient!}
           onEdit={() => setEditing(true)}
           onPatientChanged={setPatient}
-          onEverythingChanged={() => (user ? loadEverything(user) : Promise.resolve())}
+          onEverythingChanged={reloadAll}
+          onAddPerson={startAdding}
+          onDeleted={async (name) => {
+            setNotice(t("delDone", { name }));
+            await reloadAll();
+          }}
         />
       </Shell>
     );
@@ -159,7 +188,8 @@ export default function CaregiverApp({ startDemo = false }: { startDemo?: boolea
     <Shell>
       <Wizard
         // Start where the caregiver left off.
-        initialStep={editing ? 2 : view.patient ? 3 : 2}
+        initialStep={editing || adding ? 2 : view.patient ? 3 : 2}
+        onCancel={adding ? cancelAdding : undefined}
         data={{
           email: user?.email ?? view.caregiver.email,
           caregiver: view.caregiver,
@@ -170,6 +200,10 @@ export default function CaregiverApp({ startDemo = false }: { startDemo?: boolea
           onFinished: (patient) => {
             setEditing(false);
             setPatient(patient);
+            if (adding) {
+              setAdding(null);
+              reloadAll(); // refresh the list of people
+            }
           },
         }}
       />
