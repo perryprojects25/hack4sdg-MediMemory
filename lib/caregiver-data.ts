@@ -53,18 +53,31 @@ export async function ensureCaregiver(user: User): Promise<Caregiver> {
   return created;
 }
 
-// The prototype supports one patient per caregiver: we use the first one.
-export async function loadPatient(caregiverId: string): Promise<Patient | null> {
+// A caregiver can look after more than one person (e.g. a real patient and the demo).
+// The one currently shown is remembered on this device.
+const SELECTED_PATIENT_KEY = "medimemory-selected-patient";
+
+export function selectPatient(patientId: string) {
+  try {
+    localStorage.setItem(SELECTED_PATIENT_KEY, patientId);
+  } catch {}
+}
+
+export async function loadPatients(caregiverId: string): Promise<Patient[]> {
   const supabase = getSupabaseBrowser();
-  return maybe(
-    await supabase
-      .from("patients")
-      .select("*")
-      .eq("caregiver_id", caregiverId)
-      .order("created_at")
-      .limit(1)
-      .maybeSingle<Patient>()
+  return must(
+    await supabase.from("patients").select("*").eq("caregiver_id", caregiverId).order("created_at").returns<Patient[]>()
   );
+}
+
+// The selected patient, or the first one.
+export async function loadPatient(caregiverId: string): Promise<Patient | null> {
+  const patients = await loadPatients(caregiverId);
+  let selected: string | null = null;
+  try {
+    selected = localStorage.getItem(SELECTED_PATIENT_KEY);
+  } catch {}
+  return patients.find((p) => p.id === selected) ?? patients[0] ?? null;
 }
 
 export async function savePatient(
@@ -154,4 +167,122 @@ export async function importHospitalDemo(patientId: string): Promise<void> {
 export function generatePin(): string {
   const n = crypto.getRandomValues(new Uint32Array(1))[0] % 10000;
   return n.toString().padStart(4, "0");
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard helpers (Step 6)
+// ---------------------------------------------------------------------------
+
+export type IntakeLog = {
+  id: string;
+  medication_id: string;
+  scheduled_for: string;
+  status: string;
+  logged_at: string;
+  logged_by: string;
+};
+
+export type CaregiverNote = { id: string; patient_id: string; note: string; created_at: string };
+
+export async function loadLogs(patientId: string, sinceISO: string): Promise<IntakeLog[]> {
+  const supabase = getSupabaseBrowser();
+  return must(
+    await supabase
+      .from("intake_logs")
+      .select("id, medication_id, scheduled_for, status, logged_at, logged_by")
+      .eq("patient_id", patientId)
+      .gte("scheduled_for", sinceISO)
+      .order("logged_at")
+      .returns<IntakeLog[]>()
+  );
+}
+
+// "Mark as taken" by the caregiver, e.g. the patient took it but forgot to press the button.
+// Returns false if the dose was already recorded as taken (no double logging).
+export async function markTakenByCaregiver(
+  patientId: string,
+  medicationId: string,
+  scheduledFor: string
+): Promise<boolean> {
+  const supabase = getSupabaseBrowser();
+  const existing = must(
+    await supabase
+      .from("intake_logs")
+      .select("id")
+      .eq("medication_id", medicationId)
+      .eq("scheduled_for", scheduledFor)
+      .eq("status", "taken")
+      .limit(1)
+  );
+  if (existing.length > 0) return false;
+  must(
+    await supabase
+      .from("intake_logs")
+      .insert({
+        patient_id: patientId,
+        medication_id: medicationId,
+        scheduled_for: scheduledFor,
+        status: "taken",
+        logged_by: "caregiver",
+      })
+      .select("id")
+  );
+  return true;
+}
+
+// Edit a medicine and replace its daily times.
+export async function updateMedication(
+  medicationId: string,
+  med: Omit<NewMedication, "source">
+): Promise<void> {
+  const supabase = getSupabaseBrowser();
+  const { times, ...fields } = med;
+  must(await supabase.from("medications").update(fields).eq("id", medicationId).select("id"));
+  must(await supabase.from("schedules").delete().eq("medication_id", medicationId).select("id"));
+  must(
+    await supabase
+      .from("schedules")
+      .insert(times.map((time) => ({ medication_id: medicationId, time_of_day: time })))
+      .select("id")
+  );
+}
+
+export async function setMedicationActive(medicationId: string, active: boolean): Promise<void> {
+  const supabase = getSupabaseBrowser();
+  must(await supabase.from("medications").update({ active }).eq("id", medicationId).select("id"));
+}
+
+export async function loadNotes(patientId: string): Promise<CaregiverNote[]> {
+  const supabase = getSupabaseBrowser();
+  return must(
+    await supabase
+      .from("caregiver_notes")
+      .select("*")
+      .eq("patient_id", patientId)
+      .order("created_at", { ascending: false })
+      .returns<CaregiverNote[]>()
+  );
+}
+
+export async function addNote(patientId: string, note: string): Promise<void> {
+  const supabase = getSupabaseBrowser();
+  must(await supabase.from("caregiver_notes").insert({ patient_id: patientId, note }).select("id"));
+}
+
+export async function deleteNote(noteId: string): Promise<void> {
+  const supabase = getSupabaseBrowser();
+  maybe(await supabase.from("caregiver_notes").delete().eq("id", noteId));
+}
+
+// SIMULATED "Prescription sync": adds sample hospital medicines that aren't there yet.
+// Returns how many were added.
+export async function syncHospitalDemo(patientId: string, current: Medication[]): Promise<number> {
+  const existing = new Set(current.filter((m) => m.source === "HA_demo").map((m) => m.name));
+  let added = 0;
+  for (const item of hospitalDemo.items) {
+    if (existing.has(item.name)) continue;
+    await addMedication(patientId, { ...item, source: "HA_demo" });
+    added++;
+  }
+  return added;
 }

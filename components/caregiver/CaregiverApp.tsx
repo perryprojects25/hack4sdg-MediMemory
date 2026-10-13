@@ -7,11 +7,11 @@ import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useLanguage } from "@/lib/language";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
-import { ensureCaregiver, loadMedications, loadPatient } from "@/lib/caregiver-data";
+import { ensureCaregiver, loadMedications, loadPatient, loadPatients } from "@/lib/caregiver-data";
 import type { Caregiver, Medication, Patient } from "@/lib/types";
 import { ErrorBox, PrimaryButton } from "@/components/ui";
 import Wizard from "./Wizard";
-import CaregiverHome from "./CaregiverHome";
+import Dashboard from "./dashboard/Dashboard";
 
 const isConfigured = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -25,7 +25,13 @@ type View =
   | { kind: "loading" }
   | { kind: "signedOut" }
   | { kind: "error" }
-  | { kind: "ready"; caregiver: Caregiver; patient: Patient | null; medications: Medication[] };
+  | {
+      kind: "ready";
+      caregiver: Caregiver;
+      patients: Patient[];
+      patient: Patient | null;
+      medications: Medication[];
+    };
 
 export default function CaregiverApp() {
   const { t } = useLanguage();
@@ -36,9 +42,9 @@ export default function CaregiverApp() {
   async function loadEverything(signedInUser: User) {
     try {
       const caregiver = await ensureCaregiver(signedInUser);
-      const patient = await loadPatient(caregiver.id);
+      const [patients, patient] = await Promise.all([loadPatients(caregiver.id), loadPatient(caregiver.id)]);
       const medications = patient ? await loadMedications(patient.id) : [];
-      setView({ kind: "ready", caregiver, patient, medications });
+      setView({ kind: "ready", caregiver, patients, patient, medications });
     } catch (err) {
       console.error(err);
       setView({ kind: "error" });
@@ -110,11 +116,14 @@ export default function CaregiverApp() {
   if (setupFinished && !editing) {
     return (
       <Shell>
-        <CaregiverHome
+        <Dashboard
+          key={view.patient!.id} // start fresh when switching patient
           caregiver={view.caregiver}
+          patients={view.patients}
           patient={view.patient!}
-          medications={view.medications}
           onEdit={() => setEditing(true)}
+          onPatientChanged={setPatient}
+          onEverythingChanged={() => (user ? loadEverything(user) : Promise.resolve())}
         />
       </Shell>
     );

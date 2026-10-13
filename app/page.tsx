@@ -28,8 +28,7 @@ const roles: {
     color: "border-teal-700 hover:bg-teal-50",
   },
   {
-    // Placeholder token until real doctor links exist (Step 7).
-    href: "/doctor/demo",
+    href: "/doctor",
     icon: "🩺",
     titleKey: "roleDoctorTitle",
     descKey: "roleDoctorDesc",

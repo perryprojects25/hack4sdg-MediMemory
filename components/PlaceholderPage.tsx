@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
 
-// Temporary page layout used until each real screen is built.
+// Simple centred message page (doctor info, 404).
 export default function PlaceholderPage({
   icon,
   titleKey,
@@ -27,7 +27,6 @@ export default function PlaceholderPage({
         </div>
         <h1 className="mt-4 text-3xl font-bold text-slate-900">{t(titleKey)}</h1>
         <p className="mt-4 text-xl text-slate-800">{t(textKey)}</p>
-        <p className="mt-2 text-lg font-semibold text-teal-800">{t("comingSoon")}</p>
         {detail && (
           <p className="mt-4 text-lg text-slate-800">
             {t(detail.labelKey)}: <code className="font-mono font-bold">{detail.value}</code>
