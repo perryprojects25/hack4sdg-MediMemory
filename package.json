@@ -9,7 +9,8 @@
     "lint": "eslint",
     "check-db": "node --env-file=.env.local scripts/check-db.mjs",
     "test-ai": "tsx --conditions=react-server scripts/test-ai.mts",
-    "test-ai-live": "tsx --conditions=react-server --env-file=.env.local scripts/test-ai-live.mts"
+    "test-ai-live": "tsx --conditions=react-server --env-file=.env.local scripts/test-ai-live.mts",
+    "test-ai-week": "tsx --conditions=react-server --env-file=.env.local scripts/test-ai-week.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
