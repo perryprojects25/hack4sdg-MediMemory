@@ -1,7 +1,7 @@
 "use client";
 
 // Doctor summary: generate with AI, REVIEW it, then create a shareable doctor link.
-// Includes a one-time consent notice about sending de-identified data to DeepSeek.
+// Includes a one-time consent notice about sending de-identified data to the AI provider.
 
 import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/lib/language";
@@ -13,7 +13,10 @@ import type { Patient } from "@/lib/types";
 import SummaryView from "@/components/SummaryView";
 import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
 
-const CONSENT_KEY = "medimemory-ai-consent";
+// Bumped when the AI provider changed, so caregivers see the updated notice again.
+const CONSENT_KEY = "medimemory-ai-consent-v2";
+// Shown in the consent notice. Set NEXT_PUBLIC_AI_PROVIDER_NAME in .env.local to match AI_BASE_URL.
+const AI_PROVIDER = process.env.NEXT_PUBLIC_AI_PROVIDER_NAME || "Google Gemini";
 const PERIODS = [7, 14, 30] as const;
 const EMAIL_PATTERN = /^[^s@]+@[^s@]+.[^s@]+$/;
 
@@ -84,16 +87,7 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
       });
       const body = await response.json();
       if (response.ok) setDraft(body as SummaryContent);
-      else
-        setProblem(
-          body.error === "ai_not_configured"
-            ? "sumNotConfigured"
-            : body.error === "ai_no_credit"
-              ? "sumNoCredit"
-              : body.error === "ai_bad_key"
-                ? "sumBadKey"
-                : "sumFailed"
-        );
+      else setProblem("sumFailed"); // AI problems never reach here: the built-in summary is used instead
     } catch {
       setProblem("sumFailed");
     }
@@ -160,8 +154,9 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
     return (
       <Card className="border-sky-700 bg-sky-50">
         <h2 className="text-2xl font-bold text-slate-900">🔒 {t("consentTitle")}</h2>
-        <p className="mt-3 text-lg text-slate-900">{t("consentText1")}</p>
+        <p className="mt-3 text-lg text-slate-900">{t("consentText1", { provider: AI_PROVIDER })}</p>
         <p className="mt-2 text-lg text-slate-900">{t("consentText2")}</p>
+        <p className="mt-2 text-lg text-slate-900">{t("consentText3")}</p>
         <label className="mt-4 flex cursor-pointer items-start gap-3 text-lg text-slate-900">
           <input
             type="checkbox"
@@ -235,6 +230,11 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
       {/* Review step: the caregiver checks the summary before anything is shared */}
       {draft && (
         <Card className="border-teal-700">
+          {draft.writtenBy === "automatic" && (
+            <p className="mb-4 rounded-xl border-2 border-amber-600 bg-amber-50 p-3 text-lg text-amber-950">
+              {t("sumAutoNote")}
+            </p>
+          )}
           <p className="mb-4 rounded-xl bg-teal-50 p-3 text-lg font-semibold text-teal-950">👀 {t("sumReview")}</p>
           <SummaryView content={draft} />
           <div className="mt-6 max-w-md">

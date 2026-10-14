@@ -300,6 +300,7 @@ export type SummaryContent = {
   period: { start: string; end: string };
   language: "en" | "zh";
   summary: AiSummary;
+  writtenBy?: "ai" | "automatic"; // "automatic" = built-in fallback, AI was unavailable
   facts: SummaryFacts;
   medications: SummaryMedication[];
   rawLog: RawLogRow[];

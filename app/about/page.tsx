@@ -48,7 +48,7 @@ export default function AboutPage() {
       <ul className="mt-4 flex flex-col gap-3">
         {ETHICS.map((key) => (
           <li key={key} className="rounded-2xl border-2 border-teal-200 bg-teal-50 p-4 text-lg leading-relaxed">
-            {t(key)}
+            {t(key, { provider: process.env.NEXT_PUBLIC_AI_PROVIDER_NAME || "Google Gemini" })}
           </li>
         ))}
       </ul>

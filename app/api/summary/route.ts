@@ -5,7 +5,8 @@
 import { AiError, generateJSON } from "@/lib/ai";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { LOG_COLUMNS, MED_COLUMNS, addDays, dayStartISO, type LogForDoses, type MedForDoses } from "@/lib/doses";
-import { SYSTEM_PROMPT, computeFacts, isAiSummary, userPrompt } from "@/lib/summary";
+import { SYSTEM_PROMPT, computeFacts, isAiSummary, userPrompt, type AiSummary } from "@/lib/summary";
+import { buildFallbackSummary } from "@/lib/summary-fallback";
 
 export const maxDuration = 60; // seconds; the AI call can take a while
 
@@ -57,37 +58,37 @@ export async function POST(request: Request) {
     });
 
     // 4. Ask the AI to write them up (de-identified: no names, no IDs).
-    const summary = await generateJSON({
-      system: SYSTEM_PROMPT,
-      user: userPrompt(facts, language === "zh" ? "zh" : "en"),
-      isValid: isAiSummary,
-      maxTokens: 4000,
-      temperature: 0.2,
-    });
+    //    If the AI is unavailable, write it from the numbers instead (clearly labelled).
+    const lang = language === "zh" ? "zh" : "en";
+    let summary: AiSummary;
+    let writtenBy: "ai" | "automatic" = "ai";
+    try {
+      summary = await generateJSON({
+        system: SYSTEM_PROMPT,
+        user: userPrompt(facts, lang),
+        isValid: isAiSummary,
+        maxTokens: 4000,
+        temperature: 0.2,
+      });
+    } catch (err) {
+      if (!(err instanceof AiError)) throw err;
+      console.error("summary: AI unavailable, using the built-in summary:", err.code, err.message);
+      summary = buildFallbackSummary(facts, lang);
+      writtenBy = "automatic";
+    }
 
     return Response.json({
       patient: { name: patient.name, age: patient.age }, // shown to the doctor, never sent to the AI
       period: { start, end },
-      language: language === "zh" ? "zh" : "en",
+      language: lang,
       summary,
+      writtenBy,
       facts,
       medications,
       rawLog,
       generatedAt: new Date().toISOString(),
     });
   } catch (err) {
-    if (err instanceof AiError) {
-      console.error("summary AI error:", err.code, err.message);
-      const error =
-        err.code === "not_configured"
-          ? "ai_not_configured"
-          : err.code === "no_credit"
-            ? "ai_no_credit"
-            : err.code === "bad_key"
-              ? "ai_bad_key"
-              : "ai_failed";
-      return Response.json({ error }, { status: 502 });
-    }
     console.error("summary failed", err);
     return Response.json({ error: "server" }, { status: 500 });
   }

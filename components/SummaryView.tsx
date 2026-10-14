@@ -77,6 +77,14 @@ export default function SummaryView({ content }: { content: SummaryContent }) {
         <p className="text-sm text-slate-700">
           {t("sumGenerated", { time: fmtDateTime(content.generatedAt) })}
         </p>
+        {/* Who wrote it: the AI, or the built-in fallback when the AI was unavailable */}
+        <p
+          className={`mt-2 inline-block rounded-full px-3 py-1 text-sm font-semibold ${
+            content.writtenBy === "automatic" ? "bg-amber-100 text-amber-950" : "bg-slate-100 text-slate-800"
+          }`}
+        >
+          {content.writtenBy === "automatic" ? t("sumWrittenAuto") : t("sumWrittenAi")}
+        </p>
       </header>
 
       <section>
