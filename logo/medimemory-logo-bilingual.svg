@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="200" viewBox="0 0 640 200">
+  <title>MediMemory 藥記通</title>
+  <g transform="translate(12 30) scale(5.5)" fill="none" stroke="#0f766e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/>
+    <path d="m8.5 8.5 7 7"/>
+  </g>
+  <text x="168" y="98" font-family="'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif" font-size="72" font-weight="700" fill="#115e59">MediMemory</text>
+  <text x="170" y="164" font-family="'Microsoft JhengHei', 'PingFang HK', 'Noto Sans TC', sans-serif" font-size="52" font-weight="700" fill="#0f766e">藥記通</text>
+</svg>
