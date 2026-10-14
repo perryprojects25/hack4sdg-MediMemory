@@ -52,7 +52,7 @@ export const translations = {
     // Wizard step 1: account
     s1Title: "Create your account",
     s1TitleReturning: "Sign in",
-    s1Intro: "We'll email you a sign-in link. No password needed.",
+    s1Intro: "No password needed.",
     s1Name: "Your name",
     s1Email: "Your email",
     s1Send: "Email me a sign-in link",
@@ -66,6 +66,8 @@ export const translations = {
     s1SignedInAs: "You're signed in as {email}.",
     s1LinkExpired: "That sign-in link has expired or was already used. Please ask for a new one.",
     s1TooMany: "Too many emails were sent recently. Please wait a few minutes and try again.",
+    signInGoogle: "Continue with Google",
+    orUseEmail: "or use your email",
     errNameRequired: "Please enter a name.",
     errEmailInvalid: "Please enter a valid email address, like name@example.com.",
 
@@ -394,7 +396,7 @@ export const translations = {
     docLinkOpen: "Open summary",
     docLinkInvalid: "That doesn't look like a MediMemory summary link. Please check it and try again.",
     docEmailOption: "Summaries shared to your email? See them all",
-    docSignInText: "Use the email address the caregiver shared the summary with. We will email you a sign-in link. No password needed.",
+    docSignInText: "Use the email address the caregiver shared the summary with. No password needed.",
     docEmail: "Your email",
     docCheckEmail: "We sent a sign-in link to {email}. Open it on this device to see your summaries.",
     docSharedTitle: "Summaries shared with you",
@@ -471,7 +473,7 @@ export const translations = {
 
     s1Title: "建立你的帳戶",
     s1TitleReturning: "登入",
-    s1Intro: "我們會把登入連結電郵給你，不需要密碼。",
+    s1Intro: "不需要密碼。",
     s1Name: "你的名字",
     s1Email: "你的電郵",
     s1Send: "電郵登入連結給我",
@@ -484,6 +486,8 @@ export const translations = {
     s1SignedInAs: "你已用 {email} 登入。",
     s1LinkExpired: "這個登入連結已過期或已被使用，請重新索取。",
     s1TooMany: "最近傳送的電郵太多，請等幾分鐘再試。",
+    signInGoogle: "使用 Google 繼續",
+    orUseEmail: "或使用電郵",
     errNameRequired: "請輸入名字。",
     errEmailInvalid: "請輸入有效的電郵地址，例如 name@example.com。",
 
@@ -789,7 +793,7 @@ export const translations = {
     docLinkOpen: "打開摘要",
     docLinkInvalid: "這不像是藥記通的摘要連結，請檢查後再試。",
     docEmailOption: "摘要分享到你的電郵？查看全部",
-    docSignInText: "請使用照顧者分享摘要時填寫的電郵地址。我們會把登入連結電郵給你，不需要密碼。",
+    docSignInText: "請使用照顧者分享摘要時填寫的電郵地址。不需要密碼。",
     docEmail: "你的電郵",
     docCheckEmail: "我們已把登入連結傳送到 {email}。請在這部裝置上打開，即可查看摘要。",
     docSharedTitle: "分享給你的摘要",

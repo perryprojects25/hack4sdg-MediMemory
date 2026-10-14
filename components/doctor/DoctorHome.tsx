@@ -13,6 +13,7 @@ import type { User } from "@supabase/supabase-js";
 import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import GoogleSignIn from "@/components/GoogleSignIn";
 import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
 
 const isConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -159,6 +160,9 @@ function DoctorSignIn() {
   return (
     <div>
       <p className="text-lg text-slate-800">{t("docSignInText")}</p>
+      <div className="mt-6">
+        <GoogleSignIn returnTo="/doctor" />
+      </div>
       <form onSubmit={send} noValidate className="mt-6 flex flex-col gap-5">
         <Field label={t("docEmail")} error={error ? t(error) : undefined}>
           {(props) => (

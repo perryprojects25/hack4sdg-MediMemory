@@ -1,6 +1,6 @@
 "use client";
 
-// Step 1: create an account / sign in with a magic link (no password).
+// Step 1: create an account / sign in with Google or a magic link (no password).
 
 import { useState } from "react";
 import { useLanguage } from "@/lib/language";
@@ -10,6 +10,7 @@ import { PENDING_NAME_KEY } from "@/lib/caregiver-data";
 import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
 import { WizardNav } from "./Wizard";
 import DeleteAccount from "./DeleteAccount";
+import GoogleSignIn from "@/components/GoogleSignIn";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -115,8 +116,17 @@ function SignInForm({ linkExpired }: { linkExpired: boolean }) {
       </h1>
       <p className="mt-2 text-xl text-slate-800">{t("s1Intro")}</p>
 
+      {problem && (
+        <div className="mt-6">
+          <ErrorBox>{t(problem)}</ErrorBox>
+        </div>
+      )}
+
+      <div className="mt-6">
+        <GoogleSignIn returnTo="/caregiver" />
+      </div>
+
       <form onSubmit={send} noValidate className="mt-6 flex flex-col gap-6">
-        {problem && <ErrorBox>{t(problem)}</ErrorBox>}
 
         {!returning && (
           <Field label={t("s1Name")} error={errors.name && t(errors.name)}>
