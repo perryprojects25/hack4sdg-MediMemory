@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local tool settings (kept on this computer, not on GitHub)
+/.claude/
+/CLAUDE.md
+/AGENTS.md
