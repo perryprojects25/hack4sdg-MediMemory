@@ -35,6 +35,7 @@ export const translations = {
     backHome: "Back to home",
     doctorDisclaimer:
       "Generated from caregiver and patient logged data. For clinical review only. Not medical advice.",
+    sumNotProof: "A confirmed dose means someone pressed \"I took it\" or \"Mark as taken\". It is not proof that the medicine was swallowed.",
 
     // Caregiver: general
     loading: "Loading…",
@@ -500,6 +501,7 @@ export const translations = {
 
     backHome: "返回主頁",
     doctorDisclaimer: "根據照顧者及病人記錄的資料產生。只供臨床參考，並非醫療建議。",
+    sumNotProof: "「已服用」只代表有人按了「我食咗」或「標記為已服用」，並不能證明藥物已經服下。",
 
     loading: "載入中…",
     notConfigured: "資料庫尚未連接。請檢查 .env.local 內的 Supabase 設定。",

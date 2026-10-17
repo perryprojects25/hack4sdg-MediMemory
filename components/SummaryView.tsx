@@ -90,6 +90,10 @@ export default function SummaryView({ content }: { content: SummaryContent }) {
       <section>
         <h2 className="text-xl font-bold">{t("sumOverview")}</h2>
         <p className="mt-2 text-lg leading-relaxed">{summary.overview}</p>
+        {/* Always shown: a confirmation is a button press, not proof of ingestion */}
+        <p className="mt-3 rounded-xl border-2 border-amber-600 bg-amber-50 p-3 text-base font-semibold text-amber-950">
+          ⚠️ {t("sumNotProof")}
+        </p>
         {facts.overall.adherence_pct !== null && (
           <p className="mt-2 text-lg">
             <strong>{t("sumOverall")}:</strong> {facts.overall.adherence_pct}% (
