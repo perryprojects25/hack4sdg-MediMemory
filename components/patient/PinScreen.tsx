@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/lib/language";
 import { askNotificationPermission } from "@/lib/reminders";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { Center } from "./Screens";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "delete"] as const;
@@ -70,6 +71,8 @@ export default function PinScreen({
         </p>
       )}
       <h1 className="mt-2 text-3xl font-bold text-slate-900">{t("pEnterPin")}</h1>
+      {/* Demo mode: any 4 digits are accepted */}
+      {DEMO_MODE && <p className="mt-2 text-2xl text-slate-800">{t("pDemoPin")}</p>}
 
       {/* Four boxes that fill in as numbers are pressed */}
       <div className="mt-6 flex gap-3" aria-live="polite" aria-label={`${pin.length} / 4`}>

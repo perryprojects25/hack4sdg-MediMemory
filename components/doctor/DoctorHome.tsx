@@ -14,6 +14,8 @@ import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import GoogleSignIn from "@/components/GoogleSignIn";
+import DemoSignInNote from "@/components/DemoSignInNote";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
 
 const isConfigured = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -30,10 +32,14 @@ type SharedSummary = {
 
 export default function DoctorHome() {
   const { t } = useLanguage();
-  const [user, setUser] = useState<User | null | undefined>(undefined); // undefined = still checking
+  // undefined = still checking. Demo mode: nobody is signed in.
+  const [user, setUser] = useState<User | null | undefined>(DEMO_MODE ? null : undefined);
+  // Demo mode: "signed in" after pressing any sign-in button (simulated).
+  const [demoIn, setDemoIn] = useState(false);
 
   useEffect(() => {
-    if (!isConfigured) return;
+    if (!isConfigured || DEMO_MODE) return;
+    // Disabled for hackathon demo (runs only when DEMO_MODE is off).
     const { data } = getSupabaseBrowser().auth.onAuthStateChange((_event, session) => {
       const signedIn = session?.user ?? null;
       setUser(signedIn && !signedIn.is_anonymous ? signedIn : null); // a demo guest is not a doctor
@@ -49,7 +55,7 @@ export default function DoctorHome() {
       </div>
 
       {/* Optional: see all summaries shared with your email */}
-      <details className="group mt-6 rounded-3xl border-2 border-slate-200 bg-white p-6" open={Boolean(user)}>
+      <details className="group mt-6 rounded-3xl border-2 border-slate-200 bg-white p-6" open={Boolean(user) || demoIn}>
         <summary className="flex cursor-pointer list-none items-center gap-3 text-xl font-semibold text-slate-900 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300">
           <Mail aria-hidden="true" className="h-6 w-6 shrink-0 text-teal-700" />
           <span className="flex-1 underline-offset-4 hover:underline">{t("docEmailOption")}</span>
@@ -62,10 +68,12 @@ export default function DoctorHome() {
           <p role="status" className="text-xl text-slate-800">
             {t("loading")}
           </p>
+        ) : demoIn ? (
+          <SharedList email="" onSignOut={() => setDemoIn(false)} />
         ) : user === null ? (
-          <DoctorSignIn />
+          <DoctorSignIn onDemoEnter={() => setDemoIn(true)} />
         ) : (
-          <SharedList email={user.email ?? ""} />
+          <SharedList email={user.email ?? ""} onSignOut={() => getSupabaseBrowser().auth.signOut()} />
         )}
         </div>
       </details>
@@ -120,7 +128,7 @@ function OpenByLink() {
   );
 }
 
-function DoctorSignIn() {
+function DoctorSignIn({ onDemoEnter }: { onDemoEnter: () => void }) {
   const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<TranslationKey | null>(null);
@@ -129,6 +137,9 @@ function DoctorSignIn() {
 
   async function send(event: React.FormEvent) {
     event.preventDefault();
+    // Demo mode: nothing is checked or sent.
+    if (DEMO_MODE) return onDemoEnter();
+    // Disabled for hackathon demo (runs only when DEMO_MODE is off).
     const clean = email.trim().toLowerCase();
     if (!EMAIL_PATTERN.test(clean)) return setError("errEmailInvalid");
     setSending(true);
@@ -160,8 +171,9 @@ function DoctorSignIn() {
   return (
     <div>
       <p className="text-lg text-slate-800">{t("docSignInText")}</p>
+      <DemoSignInNote className="mt-3" />
       <div className="mt-6">
-        <GoogleSignIn returnTo="/doctor" />
+        <GoogleSignIn returnTo="/doctor" onDemoEnter={onDemoEnter} />
       </div>
       <form onSubmit={send} noValidate className="mt-6 flex flex-col gap-5">
         <Field label={t("docEmail")} error={error ? t(error) : undefined}>
@@ -185,19 +197,20 @@ function DoctorSignIn() {
   );
 }
 
-function SharedList({ email }: { email: string }) {
+// email is "" in demo mode: then every shared summary of the demo caregiver is listed.
+function SharedList({ email, onSignOut }: { email: string; onSignOut: () => void }) {
   const { t, lang } = useLanguage();
   const [items, setItems] = useState<SharedSummary[] | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     async function load() {
-      const { data, error } = await getSupabaseBrowser()
+      let query = getSupabaseBrowser()
         .from("summaries")
         .select("id, period_start, period_end, created_at, share_token, patient:content_json->patient")
-        .eq("doctor_email", email.toLowerCase())
-        .not("share_token", "is", null)
-        .order("created_at", { ascending: false });
+        .not("share_token", "is", null);
+      if (!DEMO_MODE) query = query.eq("doctor_email", email.toLowerCase());
+      const { data, error } = await query.order("created_at", { ascending: false });
       if (error) {
         console.error(error);
         setFailed(true);
@@ -219,8 +232,8 @@ function SharedList({ email }: { email: string }) {
     <div className="flex flex-col gap-6">
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-lg text-slate-800">{t("s1SignedInAs", { email })}</p>
-          <SecondaryButton onClick={() => getSupabaseBrowser().auth.signOut()}>{t("signOut")}</SecondaryButton>
+          {DEMO_MODE ? <DemoSignInNote /> : <p className="text-lg text-slate-800">{t("s1SignedInAs", { email })}</p>}
+          <SecondaryButton onClick={onSignOut}>{t("signOut")}</SecondaryButton>
         </div>
       </Card>
 

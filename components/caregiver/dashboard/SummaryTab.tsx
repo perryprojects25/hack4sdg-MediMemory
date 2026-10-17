@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import { addDays, hongKongDate } from "@/lib/doses";
 import type { SummaryContent } from "@/lib/summary";
 import type { Patient } from "@/lib/types";
@@ -75,13 +76,15 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
     setProblem(null);
     setDraft(null);
     try {
-      const { data: session } = await getSupabaseBrowser().auth.getSession();
+      // Demo mode: no sign-in token; the server uses the demo caregiver.
+      // Otherwise (disabled for hackathon demo): send the caregiver's sign-in token.
+      const token = DEMO_MODE ? "" : ((await getSupabaseBrowser().auth.getSession()).data.session?.access_token ?? "");
       const end = hongKongDate(new Date());
       const response = await fetch("/api/summary", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.session?.access_token ?? ""}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ patientId: patient.id, start: addDays(end, -(days - 1)), end, language: summaryLang }),
       });

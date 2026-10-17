@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/lib/language";
 import type { TranslationKey } from "@/lib/translations";
 import {
@@ -16,6 +17,7 @@ import {
 } from "@/lib/caregiver-data";
 import { DEMO_MARK, addTestDose, loadDemo, removeDemo } from "@/lib/demo-data";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import type { Caregiver, Patient } from "@/lib/types";
 import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
 import { Trash2 } from "lucide-react";
@@ -42,6 +44,7 @@ export default function SettingsTab({
   reload: () => Promise<void>;
 }) {
   const { t } = useLanguage();
+  const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [problem, setProblem] = useState<TranslationKey | null>(null);
@@ -188,7 +191,14 @@ export default function SettingsTab({
           <Link href="/about" className="text-lg font-semibold text-teal-800 underline underline-offset-4">
             ℹ️ {t("aboutLink")}
           </Link>
-          <SecondaryButton onClick={() => getSupabaseBrowser().auth.signOut()}>{t("signOut")}</SecondaryButton>
+          <SecondaryButton
+            onClick={() =>
+              // Demo mode: sign-in is simulated, so "Sign out" just goes back to the start page.
+              DEMO_MODE ? router.push("/") : getSupabaseBrowser().auth.signOut()
+            }
+          >
+            {t("signOut")}
+          </SecondaryButton>
         </div>
         {caregiver.email && (
           <p className="mt-3 text-base text-slate-700">{t("s1SignedInAs", { email: caregiver.email })}</p>
@@ -196,7 +206,8 @@ export default function SettingsTab({
       </Card>
 
       <DeletePerson patient={patient} onDeleted={onDeleted} />
-      {caregiver.email && <DeleteAccount email={caregiver.email} />}
+      {/* Demo mode: the shared demo account can't be deleted. */}
+      {caregiver.email && !DEMO_MODE && <DeleteAccount email={caregiver.email} />}
     </div>
   );
 }

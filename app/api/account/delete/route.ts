@@ -4,8 +4,11 @@
 // notes and doctor summaries ("on delete cascade"). This cannot be undone.
 
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { DEMO_MODE } from "@/lib/demo-mode";
 
 export async function POST(request: Request) {
+  // Demo mode: the shared demo account can't be deleted.
+  if (DEMO_MODE) return Response.json({ error: "demo_mode" }, { status: 403 });
   try {
     const supabase = getSupabaseAdmin();
 

@@ -9,6 +9,7 @@ import { useLanguage } from "@/lib/language";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
 import { Card, ErrorBox, Field, inputClass } from "@/components/ui";
 
+// Disabled for hackathon demo: not shown when DEMO_MODE is on.
 export default function DeleteAccount({ email }: { email: string }) {
   const { t } = useLanguage();
   const [typed, setTyped] = useState("");

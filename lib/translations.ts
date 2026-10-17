@@ -68,6 +68,8 @@ export const translations = {
     s1TooMany: "Too many emails were sent recently. Please wait a few minutes and try again.",
     signInGoogle: "Continue with Google",
     orUseEmail: "or use your email",
+    demoSignInNote: "Demo mode: sign-in is simulated.",
+    pDemoPin: "Demo PIN: 1234",
     errNameRequired: "Please enter a name.",
     errEmailInvalid: "Please enter a valid email address, like name@example.com.",
 
@@ -488,6 +490,8 @@ export const translations = {
     s1TooMany: "最近傳送的電郵太多，請等幾分鐘再試。",
     signInGoogle: "使用 Google 繼續",
     orUseEmail: "或使用電郵",
+    demoSignInNote: "示範模式：登入為模擬。",
+    pDemoPin: "示範密碼：1234",
     errNameRequired: "請輸入名字。",
     errEmailInvalid: "請輸入有效的電郵地址，例如 name@example.com。",
 

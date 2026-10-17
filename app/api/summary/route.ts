@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { LOG_COLUMNS, MED_COLUMNS, addDays, dayStartISO, type LogForDoses, type MedForDoses } from "@/lib/doses";
 import { SYSTEM_PROMPT, computeFacts, isAiSummary, userPrompt, type AiSummary } from "@/lib/summary";
 import { buildFallbackSummary } from "@/lib/summary-fallback";
+import { DEMO_CAREGIVER, DEMO_MODE } from "@/lib/demo-mode";
 
 export const maxDuration = 60; // seconds; the AI call can take a while
 
@@ -17,9 +18,15 @@ export async function POST(request: Request) {
     const supabase = getSupabaseAdmin();
 
     // 1. Who is asking? Only a signed-in caregiver, for their own patient.
-    const token = request.headers.get("authorization")?.replace(/^Bearer /, "");
-    const { data: auth } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
-    if (!auth.user) return Response.json({ error: "unauthorised" }, { status: 401 });
+    //    Demo mode: nobody signs in; it is always the demo caregiver.
+    let caregiverId: string = DEMO_CAREGIVER.id;
+    if (!DEMO_MODE) {
+      // Disabled for hackathon demo (runs only when DEMO_MODE is off).
+      const token = request.headers.get("authorization")?.replace(/^Bearer /, "");
+      const { data: auth } = token ? await supabase.auth.getUser(token) : { data: { user: null } };
+      if (!auth.user) return Response.json({ error: "unauthorised" }, { status: 401 });
+      caregiverId = auth.user.id;
+    }
 
     const { patientId, start, end, language } = await request.json();
     if (typeof start !== "string" || typeof end !== "string" || !DATE.test(start) || !DATE.test(end) || start > end) {
@@ -31,7 +38,7 @@ export async function POST(request: Request) {
       .select("id, caregiver_id, name, age")
       .eq("id", patientId)
       .maybeSingle();
-    if (!patient || patient.caregiver_id !== auth.user.id) {
+    if (!patient || patient.caregiver_id !== caregiverId) {
       return Response.json({ error: "unauthorised" }, { status: 401 });
     }
 

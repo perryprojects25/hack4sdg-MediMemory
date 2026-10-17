@@ -8,6 +8,7 @@ import { useLanguage } from "@/lib/language";
 import type { Dose, LogResult, PatientInfo } from "@/lib/patient-server";
 import { speak } from "@/lib/speech";
 import { formatTime } from "@/lib/time";
+import { DEMO_MODE } from "@/lib/demo-mode";
 import PinScreen from "./PinScreen";
 import UsernameScreen from "./UsernameScreen";
 import DoseScreen from "./DoseScreen";
@@ -83,7 +84,8 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
       await Promise.resolve(); // let the first screen paint before we start
       const saved = readDevice();
       const id = linkId ?? saved?.id ?? null;
-      if (!id) return setView({ kind: "username" });
+      // Demo mode: no username, just the PIN pad (any 4 digits work).
+      if (!id) return setView(DEMO_MODE ? { kind: "loginPin", username: "", wrong: false } : { kind: "username" });
       if (!saved || saved.id !== id) return setView({ kind: "pin", id, wrongPin: false });
 
       try {
@@ -162,7 +164,7 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
     setPatient(null);
     setDoses([]);
     if (linkId) window.history.replaceState(null, "", "/patient");
-    setView({ kind: "username" });
+    setView(DEMO_MODE ? { kind: "loginPin", username: "", wrong: false } : { kind: "username" });
   }
 
   // "I took it" or "Remind me later".

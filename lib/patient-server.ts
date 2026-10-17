@@ -6,6 +6,8 @@
 import "server-only";
 import { getSupabaseAdmin } from "./supabase/admin";
 import { MAX_SNOOZES, SNOOZE_MINUTES } from "./dose-rules";
+import { DEMO_CAREGIVER, DEMO_MODE } from "./demo-mode";
+import { resolveDemoPatientId } from "./demo-server";
 import {
   LOG_COLUMNS,
   MED_COLUMNS,
@@ -81,7 +83,7 @@ export async function loadPatientDay(
   const [patientResult, logsResult] = await Promise.all([
     supabase
       .from("patients")
-      .select(`id, name, preferred_language, pin, medications(${MED_COLUMNS})`)
+      .select(`id, caregiver_id, name, preferred_language, pin, medications(${MED_COLUMNS})`)
       .eq("id", id)
       .maybeSingle(),
     supabase
@@ -95,7 +97,9 @@ export async function loadPatientDay(
   if (logsResult.error) throw new Error(logsResult.error.message);
 
   const row = patientResult.data;
-  if (!row || row.pin !== pin) return null; // the logs are thrown away if the PIN is wrong
+  // Demo mode: any 4 digits are accepted, but only for the demo caregiver's people.
+  const pinOk = DEMO_MODE ? row?.caregiver_id === DEMO_CAREGIVER.id : row?.pin === pin;
+  if (!row || !pinOk) return null; // the logs are thrown away if the PIN is wrong
 
   const doses = buildDoses(
     (row.medications ?? []) as MedForDoses[],
@@ -116,6 +120,9 @@ export const USERNAME_PATTERN = /^[a-z0-9]{3,20}$/;
 // Sign in without a link: finds the patient whose username AND PIN both match.
 // (Each username + PIN pair is unique in the database.)
 export async function findPatientByLogin(username: unknown, pin: unknown): Promise<string | null> {
+  // Demo mode: any 4-digit PIN opens the demo patient (Mrs. Chan, or the first person added).
+  if (DEMO_MODE) return typeof pin === "string" && /^\d{4}$/.test(pin) ? resolveDemoPatientId() : null;
+
   if (typeof username !== "string" || typeof pin !== "string") return null;
   const clean = username.trim().toLowerCase();
   if (!USERNAME_PATTERN.test(clean) || !/^\d{4}$/.test(pin)) return null;

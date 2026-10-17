@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/lib/language";
 import { getSupabaseBrowser } from "@/lib/supabase/client";
+import { DEMO_MODE } from "@/lib/demo-mode";
 
 // Asks Supabase once per page load which sign-in methods are switched on.
 let googleEnabled: Promise<boolean> | null = null;
@@ -20,18 +21,22 @@ function checkGoogleEnabled(): Promise<boolean> {
   return googleEnabled;
 }
 
-export default function GoogleSignIn({ returnTo }: { returnTo: string }) {
+export default function GoogleSignIn({ returnTo, onDemoEnter }: { returnTo: string; onDemoEnter?: () => void }) {
   const { t } = useLanguage();
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(DEMO_MODE); // demo mode: always shown, as a placeholder
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (DEMO_MODE) return;
     checkGoogleEnabled().then(setEnabled);
   }, []);
 
   if (!enabled) return null;
 
   async function signIn() {
+    // Demo mode: no Google, no sign-in. Just go in.
+    if (DEMO_MODE) return onDemoEnter?.();
+    // Disabled for hackathon demo (runs only when DEMO_MODE is off).
     setBusy(true);
     // Goes to Google, then comes back to `returnTo` already signed in.
     const { error } = await getSupabaseBrowser().auth.signInWithOAuth({

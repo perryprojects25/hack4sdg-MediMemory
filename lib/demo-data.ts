@@ -13,6 +13,7 @@ import { generatePin, selectPatient } from "./caregiver-data";
 import { addDays, hongKongDate, weekdayOf } from "./doses";
 import { UTC_OFFSET } from "./dose-rules";
 import type { Patient } from "./types";
+import { DEMO_MODE, DEMO_PATIENT_ID, DEMO_PIN } from "./demo-mode";
 
 // Marks the demo patient so "Reset demo" only ever touches demo data.
 export const DEMO_MARK = "Demo patient (fictional data)";
@@ -106,17 +107,19 @@ export async function loadDemo(
   const startedAt = new Date(`${firstDay}T07:00:00${UTC_OFFSET}`).toISOString();
 
   // 1. Patient (signs in as "mrschan" + PIN; try another PIN if that pair is taken)
+  //    Demo mode: the fixed id from lib/demo-mode.ts and PIN 1234 (any PIN works there anyway).
   let patient: Patient | null = null;
   for (let attempt = 0; attempt < 5 && !patient; attempt++) {
     const { data, error } = await supabase
       .from("patients")
       .insert({
+        ...(DEMO_MODE ? { id: DEMO_PATIENT_ID } : {}),
         caregiver_id: caregiverId,
         name: "Mrs. Chan",
         age: 78,
         preferred_language: "zh",
         username: "mrschan",
-        pin: generatePin(),
+        pin: DEMO_MODE && attempt === 0 ? DEMO_PIN : generatePin(),
         notes: DEMO_MARK,
         created_at: startedAt,
       })

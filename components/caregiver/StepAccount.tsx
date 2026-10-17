@@ -11,6 +11,8 @@ import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } fro
 import { WizardNav } from "./Wizard";
 import DeleteAccount from "./DeleteAccount";
 import GoogleSignIn from "@/components/GoogleSignIn";
+import DemoSignInNote from "@/components/DemoSignInNote";
+import { DEMO_MODE } from "@/lib/demo-mode";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -25,6 +27,10 @@ export default function StepAccount({
 }) {
   const { t } = useLanguage();
 
+  // Demo mode: the sign-in screen is a placeholder. Every button just goes to the next step.
+  if (DEMO_MODE) return <SignInForm linkExpired={false} onDemoEnter={onNext} />;
+
+  // Disabled for hackathon demo (runs only when DEMO_MODE is off).
   // Already signed in: just confirm and move on.
   if (email) {
     return (
@@ -45,7 +51,7 @@ export default function StepAccount({
   return <SignInForm linkExpired={linkExpired} />;
 }
 
-function SignInForm({ linkExpired }: { linkExpired: boolean }) {
+function SignInForm({ linkExpired, onDemoEnter }: { linkExpired: boolean; onDemoEnter?: () => void }) {
   const { t } = useLanguage();
   const [returning, setReturning] = useState(false);
   const [name, setName] = useState("");
@@ -57,6 +63,10 @@ function SignInForm({ linkExpired }: { linkExpired: boolean }) {
 
   async function send(event: React.FormEvent) {
     event.preventDefault();
+    // Demo mode: nothing is checked, saved or sent.
+    if (DEMO_MODE) return onDemoEnter?.();
+
+    // Disabled for hackathon demo (runs only when DEMO_MODE is off).
     const cleanName = name.trim();
     const cleanEmail = email.trim().toLowerCase();
 
@@ -115,6 +125,7 @@ function SignInForm({ linkExpired }: { linkExpired: boolean }) {
         {returning ? t("s1TitleReturning") : t("s1Title")}
       </h1>
       <p className="mt-2 text-xl text-slate-800">{t("s1Intro")}</p>
+      <DemoSignInNote className="mt-3" />
 
       {problem && (
         <div className="mt-6">
@@ -123,7 +134,7 @@ function SignInForm({ linkExpired }: { linkExpired: boolean }) {
       )}
 
       <div className="mt-6">
-        <GoogleSignIn returnTo="/caregiver" />
+        <GoogleSignIn returnTo="/caregiver" onDemoEnter={onDemoEnter} />
       </div>
 
       <form onSubmit={send} noValidate className="mt-6 flex flex-col gap-6">

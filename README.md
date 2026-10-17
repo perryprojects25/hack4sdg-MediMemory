@@ -46,6 +46,18 @@ On Windows PowerShell, type `npm.cmd` instead of `npm` (PowerShell blocks `npm` 
    npm run dev
    ```
 
+## Demo mode (hackathon)
+
+`DEMO_MODE=true` in `.env.local` (and in Vercel's environment variables) turns off all real sign-in:
+
+- Everyone is the fixed **Demo Caregiver**; Mrs. Chan has a fixed id. Both are in `lib/demo-mode.ts`.
+- The sign-in screens still show, but every button goes straight in. Nothing is checked, saved or sent: no emails, magic links or codes.
+- The patient PIN pad accepts any 4 digits (hint: 1234) and remembers the device.
+- Caregiver data goes through `/api/demo/db`, which uses the service role key on the server and only touches the demo caregiver's rows.
+- The real sign-in code is still there, marked "Disabled for hackathon demo". Set `DEMO_MODE=false` to use it again.
+
+Anyone with the link can see and change the demo data, so use fictional data only.
+
 ## 3-minute demo
 
 1. **Caregiver** → sign in with the email link → **Settings → Load demo data**. This loads Mrs. Chan, 78, with 4 medicines and 30 days of history, and a duplicate-aspirin warning on the Medicines tab.
