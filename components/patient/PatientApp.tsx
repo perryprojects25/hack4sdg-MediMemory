@@ -12,6 +12,7 @@ import { DEMO_MODE } from "@/lib/demo-mode";
 import PinScreen from "./PinScreen";
 import UsernameScreen from "./UsernameScreen";
 import DoseScreen from "./DoseScreen";
+import DoseDetailScreen from "./DoseDetailScreen";
 import { AllDoneScreen, Center, MessageScreen } from "./Screens";
 
 // The device remembers the patient id and PIN, so the PIN is only typed once.
@@ -31,7 +32,9 @@ type View =
   | { kind: "home" }
   | { kind: "success"; name: string; time: string }
   | { kind: "already"; time: string }
-  | { kind: "snoozed"; time: string };
+  | { kind: "snoozed"; time: string }
+  | { kind: "detail"; medicationId: string; scheduledFor: string } // a medicine tapped in today's list
+  | { kind: "undone"; name: string };
 
 function readDevice(): Credentials | null {
   try {
@@ -166,8 +169,8 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
     setView(DEMO_MODE ? { kind: "loginPin", username: "", wrong: false } : { kind: "username" });
   }
 
-  // "I took it" or "Remind me later".
-  async function answer(dose: Dose, action: "taken" | "snooze", viaVoice = false) {
+  // "I took it", "Remind me later" or "I pressed this by mistake".
+  async function answer(dose: Dose, action: "taken" | "snooze" | "undo", viaVoice = false) {
     if (!creds || busy) return; // busy also stops an accidental double tap
     setBusy(true);
     try {
@@ -193,6 +196,9 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
         const time = formatTime(data.until, lang);
         speak(t("pSnoozedText", { time }), lang);
         setView({ kind: "snoozed", time });
+      } else if (data.result === "undone") {
+        speak(t("pUndone", { name: dose.name }), lang);
+        setView({ kind: "undone", name: dose.name });
       }
       // Anything else (e.g. the dose was closed meanwhile): just show the latest list.
       await refresh(creds);
@@ -283,6 +289,32 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
         />
       );
 
+    case "undone":
+      return (
+        <MessageScreen
+          icon="↩️"
+          title={t("pUndone", { name: view.name })}
+          buttonLabel={t("pOk")}
+          onButton={backHome}
+          autoCloseSeconds={12}
+        />
+      );
+
+    case "detail": {
+      const dose = doses.find((d) => d.medicationId === view.medicationId && d.scheduledFor === view.scheduledFor);
+      if (!dose) return null;
+      return (
+        <DoseDetailScreen
+          key={`${dose.medicationId}-${dose.scheduledFor}-${dose.status}`}
+          dose={dose}
+          busy={busy}
+          onTaken={() => answer(dose, "taken")}
+          onUndo={() => answer(dose, "undo")}
+          onBack={backHome}
+        />
+      );
+    }
+
     case "home": {
       const due = doses.filter((d) => d.status === "due");
       if (due.length > 0) {
@@ -301,7 +333,12 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
 
       // Nothing due: the next medicine and today's list.
       return (
-        <AllDoneScreen patientName={patient?.name ?? ""} doses={doses} onSwitchPerson={switchPerson} />
+        <AllDoneScreen
+          patientName={patient?.name ?? ""}
+          doses={doses}
+          onOpenDose={(d) => setView({ kind: "detail", medicationId: d.medicationId, scheduledFor: d.scheduledFor })}
+          onSwitchPerson={switchPerson}
+        />
       );
     }
   }

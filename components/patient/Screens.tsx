@@ -63,14 +63,16 @@ export function MessageScreen({
 
 // Shown when nothing is due: the next medicine, and today's list with what is
 // already taken. It answers "Did I already take it?" at a glance, with pictures.
-// There is nothing to press here; doses are confirmed on the reminder screen.
+// Tapping a medicine opens it (DoseDetailScreen) to confirm it or correct a mistake.
 export function AllDoneScreen({
   patientName,
   doses,
+  onOpenDose,
   onSwitchPerson,
 }: {
   patientName: string;
   doses: Dose[]; // today's doses (none of them due right now)
+  onOpenDose: (dose: Dose) => void;
   onSwitchPerson: () => void;
 }) {
   const { t, lang } = useLanguage();
@@ -120,21 +122,26 @@ export function AllDoneScreen({
           <h2 id="today-title" className="text-3xl font-bold text-slate-900">
             {t("pTodayTitle")}
           </h2>
+          <p className="mt-1 text-[22px] text-slate-800">{t("pTapHint")}</p>
           <ul className="mt-3 flex flex-col gap-3">
             {today.map((d) => (
-              <li
-                key={`${d.medicationId}-${d.scheduledFor}`}
-                className={`flex items-center gap-4 rounded-3xl border-2 p-3 ${
-                  d.status === "taken" ? "border-green-700 bg-green-50" : "border-slate-400 bg-white"
-                }`}
-              >
-                <PillIcon shape={d.shape} color={d.color} size={52} />
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{d.name}</p>
-                  <p className={`text-2xl ${d.status === "taken" ? "font-semibold text-green-900" : "text-slate-800"}`}>
-                    {statusText(d)}
-                  </p>
-                </div>
+              <li key={`${d.medicationId}-${d.scheduledFor}`}>
+                <button
+                  type="button"
+                  onClick={() => onOpenDose(d)}
+                  className={`flex min-h-20 w-full items-center gap-4 rounded-3xl border-2 p-3 text-left focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300 ${
+                    d.status === "taken" ? "border-green-700 bg-green-50 hover:bg-green-100" : "border-slate-400 bg-white hover:bg-slate-50"
+                  }`}
+                >
+                  <PillIcon shape={d.shape} color={d.color} size={52} />
+                  <span className="flex-1">
+                    <span className="block text-2xl font-bold text-slate-900">{d.name}</span>
+                    <span className={`block text-2xl ${d.status === "taken" ? "font-semibold text-green-900" : "text-slate-800"}`}>
+                      {statusText(d)}
+                    </span>
+                  </span>
+                  <span aria-hidden="true" className="text-4xl text-slate-500">›</span>
+                </button>
               </li>
             ))}
           </ul>

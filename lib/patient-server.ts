@@ -5,7 +5,7 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "./supabase/admin";
-import { MAX_SNOOZES, SNOOZE_MINUTES } from "./dose-rules";
+import { EARLY_TAKE_MINUTES, MAX_SNOOZES, SNOOZE_MINUTES, UNDO_MINUTES } from "./dose-rules";
 import { DEMO_CAREGIVER, DEMO_MODE } from "./demo-mode";
 import { resolveDemoPatientId } from "./demo-server";
 import {
@@ -40,7 +40,12 @@ export type Dose = {
   takenAt: string | null;
   snoozeCount: number;
   snoozedUntil: string | null;
+  canTakeNow: boolean; // "I took it" / "I already took it" is allowed
+  canUndo: boolean; // "I pressed this by mistake" is still allowed
 };
+
+// Who may undo a "taken": only the patient's own press (button or voice), and only for a short time.
+const PATIENT_LOGGERS = ["patient", "voice"];
 
 function toPatientDose(d: DoseInstance, now: Date): Dose {
   let status: PatientDoseStatus;
@@ -50,6 +55,13 @@ function toPatientDose(d: DoseInstance, now: Date): Dose {
   // due, late or snoozed: show it again unless a snooze is still running
   else if (d.snoozedUntil && new Date(d.snoozedUntil) > now) status = "snoozed";
   else status = "due";
+
+  const minutesUntil = (new Date(d.scheduledFor).getTime() - now.getTime()) / MINUTE;
+  const canTakeNow = status !== "taken" && (status !== "upcoming" || minutesUntil <= EARLY_TAKE_MINUTES);
+  const canUndo =
+    status === "taken" &&
+    PATIENT_LOGGERS.includes(d.takenBy ?? "") &&
+    now.getTime() - new Date(d.takenAt!).getTime() <= UNDO_MINUTES * MINUTE;
 
   return {
     medicationId: d.med.id,
@@ -63,6 +75,8 @@ function toPatientDose(d: DoseInstance, now: Date): Dose {
     takenAt: d.takenAt,
     snoozeCount: d.snoozeCount,
     snoozedUntil: d.snoozedUntil,
+    canTakeNow,
+    canUndo,
   };
 }
 
@@ -142,10 +156,14 @@ export type LogResult =
   | { result: "alreadyTaken"; takenAt: string }
   | { result: "snoozed"; until: string }
   | { result: "maxSnoozes" }
+  | { result: "undone" }
+  | { result: "undoExpired" }
+  | { result: "tooEarly"; at: string }
   | { result: "invalid" };
 
-// Records "I took it" or "Remind me later" for one dose.
-// Refuses to record a second "taken" for the same dose (prevents double dosing).
+// Records "I took it", "Remind me later" or "I pressed this by mistake" for one dose.
+// Refuses to record a second "taken" for the same dose (prevents double dosing),
+// and only allows an undo shortly after the patient's own press (UNDO_MINUTES).
 export async function logDose(
   patientId: string,
   todayDoses: Dose[],
@@ -156,7 +174,7 @@ export async function logDose(
 ): Promise<LogResult> {
   if (typeof medicationId !== "string" || !UUID_PATTERN.test(medicationId)) return { result: "invalid" };
   if (typeof scheduledForInput !== "string" || isNaN(Date.parse(scheduledForInput))) return { result: "invalid" };
-  if (action !== "taken" && action !== "snooze") return { result: "invalid" };
+  if (action !== "taken" && action !== "snooze" && action !== "undo") return { result: "invalid" };
 
   // Only accept doses that really are on today's list for this patient.
   const dose = todayDoses.find(
@@ -164,11 +182,38 @@ export async function logDose(
   );
   if (!dose) return { result: "invalid" };
 
-  if (dose.status === "taken") return { result: "alreadyTaken", takenAt: dose.takenAt! };
-  if (dose.status !== "due" && dose.status !== "snoozed") return { result: "invalid" };
-
   const supabase = getSupabaseAdmin();
   const base = { patient_id: patientId, medication_id: medicationId, scheduled_for: dose.scheduledFor };
+
+  // "I pressed this by mistake": remove the patient's own recent "taken", if still allowed.
+  if (action === "undo") {
+    if (!dose.canUndo) return { result: "undoExpired" };
+    const { data: last, error: findError } = await supabase
+      .from("intake_logs")
+      .select("id")
+      .match({ ...base, status: "taken" })
+      .in("logged_by", PATIENT_LOGGERS)
+      .gte("logged_at", new Date(Date.now() - UNDO_MINUTES * MINUTE).toISOString())
+      .order("logged_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (findError) throw new Error(findError.message);
+    if (!last) return { result: "undoExpired" };
+    const { error } = await supabase.from("intake_logs").delete().eq("id", last.id);
+    if (error) throw new Error(error.message);
+    return { result: "undone" };
+  }
+
+  // Never record a second "taken" for the same dose (prevents double dosing).
+  if (dose.status === "taken") return { result: "alreadyTaken", takenAt: dose.takenAt! };
+
+  if (action === "taken") {
+    // Too early: more than EARLY_TAKE_MINUTES before its time.
+    if (!dose.canTakeNow) return { result: "tooEarly", at: dose.scheduledFor };
+    // Due, snoozed, a little early, or missed ("I already took it"): record it.
+  } else if (dose.status !== "due" && dose.status !== "snoozed") {
+    return { result: "invalid" }; // snoozing only makes sense for a dose that is due
+  }
 
   if (action === "snooze") {
     if (dose.snoozeCount >= MAX_SNOOZES) return { result: "maxSnoozes" };
