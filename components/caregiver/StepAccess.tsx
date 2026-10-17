@@ -1,6 +1,6 @@
 "use client";
 
-// Step 4: give the patient a PIN and a personal link (with QR code).
+// Step 4: give the patient a username, a PIN and a personal link.
 // The PIN is only saved when the caregiver presses "Finish setup".
 
 import { useState } from "react";

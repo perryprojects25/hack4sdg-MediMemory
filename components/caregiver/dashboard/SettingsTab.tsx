@@ -1,6 +1,6 @@
 "use client";
 
-// Settings: patient details, patient access (PIN / link / QR), demo tools, sign out.
+// Settings: patient details, patient access (username / PIN / link), demo tools, sign out.
 
 import { useState } from "react";
 import Link from "next/link";

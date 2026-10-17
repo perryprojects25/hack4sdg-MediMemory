@@ -1,9 +1,8 @@
 "use client";
 
-// Shows the patient's PIN, personal link and a QR code for that link.
+// Shows the patient's username, PIN and personal link.
 
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { useLanguage } from "@/lib/language";
 import { SecondaryButton } from "@/components/ui";
 
@@ -63,20 +62,15 @@ export default function PatientAccess({
         )}
       </div>
 
-      <div className="grid items-start gap-6 sm:grid-cols-[auto_1fr]">
-        <div className="rounded-2xl border-2 border-slate-300 bg-white p-3">
-          <QRCodeSVG value={link} size={180} marginSize={1} title={t("s4QrAlt")} />
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-xl font-semibold text-slate-900">{t("s4Link")}</h3>
-          <p className="mt-1 text-base text-slate-700">{t("s4LinkOptional")}</p>
-          <p className="mt-2 break-all rounded-xl bg-slate-100 p-3 font-mono text-base text-slate-900">
-            {link}
-          </p>
-          <SecondaryButton className="mt-3" onClick={copy}>
-            {copied ? `✅ ${t("s4Copied")}` : `📋 ${t("s4Copy")}`}
-          </SecondaryButton>
-        </div>
+      <div className="min-w-0">
+        <h3 className="text-xl font-semibold text-slate-900">{t("s4Link")}</h3>
+        <p className="mt-1 text-base text-slate-700">{t("s4LinkOptional")}</p>
+        <p className="mt-2 break-all rounded-xl bg-slate-100 p-3 font-mono text-base text-slate-900">
+          {link}
+        </p>
+        <SecondaryButton className="mt-3" onClick={copy}>
+          {copied ? `✅ ${t("s4Copied")}` : `📋 ${t("s4Copy")}`}
+        </SecondaryButton>
       </div>
 
       <div className="rounded-2xl border-2 border-teal-700 bg-teal-50 p-4">
