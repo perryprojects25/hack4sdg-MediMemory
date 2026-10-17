@@ -1,6 +1,6 @@
 // POST /api/patient/login  { username, pin }
-// Sign in on the patient screen without a personal link.
-// Returns the patient id; the device then remembers id + PIN like the link does.
+// Sign in on the patient screen with username + PIN.
+// Returns the patient id; the device then remembers id + PIN.
 
 import { findPatientByLogin } from "@/lib/patient-server";
 

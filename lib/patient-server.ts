@@ -1,6 +1,6 @@
 // Server-only helpers for the patient screen.
 // The patient never signs in to Supabase. Instead, every request sends the
-// patient id (from their personal link) and their 4-digit PIN, and we check
+// patient id (found from their username at sign-in) and their 4-digit PIN, and we check
 // both here before using the service role key.
 
 import "server-only";

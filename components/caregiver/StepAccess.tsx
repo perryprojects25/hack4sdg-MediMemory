@@ -1,6 +1,6 @@
 "use client";
 
-// Step 4: give the patient a username, a PIN and a personal link.
+// Step 4: give the patient a username and a PIN.
 // The PIN is only saved when the caregiver presses "Finish setup".
 
 import { useState } from "react";
@@ -71,7 +71,7 @@ export default function StepAccess({
       </div>
 
       <div className="mt-6">
-        <PatientAccess patientId={patient.id} username={username} pin={pin} onNewPin={() => setPin(generatePin())} />
+        <PatientAccess username={username} pin={pin} onNewPin={() => setPin(generatePin())} />
       </div>
 
       {problem && (

@@ -1,7 +1,7 @@
 import PatientApp from "@/components/patient/PatientApp";
 
-// Patient check-in screen. Opened from the personal link: /patient?id=<patient id>
-export default async function PatientPage(props: PageProps<"/patient">) {
-  const { id } = await props.searchParams;
-  return <PatientApp linkId={typeof id === "string" ? id : null} />;
+// Patient check-in screen. The patient signs in with their username and PIN;
+// the device then remembers them.
+export default function PatientPage() {
+  return <PatientApp />;
 }

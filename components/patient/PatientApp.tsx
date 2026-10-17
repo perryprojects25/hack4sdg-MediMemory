@@ -26,7 +26,7 @@ type View =
   | { kind: "loading" }
   | { kind: "username" } // sign in without a link: username first...
   | { kind: "loginPin"; username: string; wrong: boolean } // ...then the PIN
-  | { kind: "pin"; id: string; wrongPin: boolean } // opened from the personal link
+  | { kind: "pin"; id: string; wrongPin: boolean } // this device knows who it is, but the PIN changed
   | { kind: "problem" }
   | { kind: "home" }
   | { kind: "success"; name: string; time: string }
@@ -58,7 +58,7 @@ async function post<T>(path: string, body: object): Promise<{ status: number; da
   return { status: response.status, data: await response.json() };
 }
 
-export default function PatientApp({ linkId }: { linkId: string | null }) {
+export default function PatientApp() {
   const { t, lang, setLang } = useLanguage();
   const [view, setView] = useState<View>({ kind: "loading" });
   const [creds, setCreds] = useState<Credentials | null>(null);
@@ -84,7 +84,7 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
     async function start() {
       await Promise.resolve(); // let the first screen paint before we start
       const saved = readDevice();
-      const id = linkId ?? saved?.id ?? null;
+      const id = saved?.id ?? null;
       // Demo mode: no username, just the PIN pad (any 4 digits work).
       if (!id) return setView(DEMO_MODE ? { kind: "loginPin", username: "", wrong: false } : { kind: "username" });
       if (!saved || saved.id !== id) return setView({ kind: "pin", id, wrongPin: false });
@@ -101,7 +101,7 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
       }
     }
     start();
-  }, [linkId, refresh]);
+  }, [refresh]);
 
   // Each new screen starts at the top.
   useEffect(() => {
@@ -163,7 +163,6 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
     setCreds(null);
     setPatient(null);
     setDoses([]);
-    if (linkId) window.history.replaceState(null, "", "/patient");
     setView(DEMO_MODE ? { kind: "loginPin", username: "", wrong: false } : { kind: "username" });
   }
 

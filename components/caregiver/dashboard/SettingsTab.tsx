@@ -112,7 +112,6 @@ export default function SettingsTab({
           </SecondaryButton>
         </form>
         <PatientAccess
-          patientId={patient.id}
           username={patient.username ?? ""}
           pin={patient.pin ?? ""}
           onNewPin={() =>
