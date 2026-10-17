@@ -6,7 +6,7 @@ import { useLanguage } from "@/lib/language";
 
 // Simple top bar: app name on the left, language switch on the right.
 export default function TopBar() {
-  const { t, toggleLang } = useLanguage();
+  const { t, lang, toggleLang } = useLanguage();
 
   return (
     <header className="border-b-2 border-slate-200 bg-white print:hidden">
@@ -15,13 +15,34 @@ export default function TopBar() {
           <Pill aria-hidden="true" className="h-7 w-7 text-teal-700" />
           {t("appName")}
         </Link>
+
+        {/* Language switch: EN | 中文, the teal pill slides to the language in use */}
         <button
           type="button"
+          role="switch"
+          aria-checked={lang === "zh"}
+          aria-label={t("langToggleLabel")}
           onClick={toggleLang}
-          aria-label={t("switchLanguageLabel")}
-          className="min-h-11 rounded-full border-2 border-teal-700 px-5 text-lg font-semibold text-teal-800 hover:bg-teal-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
+          className="relative inline-flex min-h-11 items-center rounded-full border-2 border-teal-700 bg-white p-1 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
         >
-          {t("switchLanguage")}
+          <span
+            aria-hidden="true"
+            className={`absolute bottom-1 left-1 top-1 w-14 rounded-full bg-teal-700 transition-transform duration-200 motion-reduce:transition-none ${
+              lang === "zh" ? "translate-x-full" : ""
+            }`}
+          />
+          <span
+            aria-hidden="true"
+            className={`relative w-14 text-center text-lg font-semibold transition-colors ${lang === "en" ? "text-white" : "text-teal-800"}`}
+          >
+            EN
+          </span>
+          <span
+            aria-hidden="true"
+            className={`relative w-14 text-center text-lg font-semibold transition-colors ${lang === "zh" ? "text-white" : "text-teal-800"}`}
+          >
+            中文
+          </span>
         </button>
       </div>
     </header>

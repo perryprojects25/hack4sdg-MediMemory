@@ -7,8 +7,7 @@ export type Lang = "en" | "zh";
 export const translations = {
   en: {
     appName: "MediMemory",
-    switchLanguage: "中文",
-    switchLanguageLabel: "Switch to Traditional Chinese",
+    langToggleLabel: "Show the app in Traditional Chinese",
 
     // Landing page
     // Landing page (exact copy)
@@ -482,8 +481,7 @@ export const translations = {
   },
   zh: {
     appName: "藥記通",
-    switchLanguage: "English",
-    switchLanguageLabel: "轉換至英文",
+    langToggleLabel: "以繁體中文顯示",
 
     heroTitle: "每次服藥，都有紀錄。",
     heroSub: "每次食完藥按一下。家人隨時看得到，覆診時醫生亦有完整紀錄。",
