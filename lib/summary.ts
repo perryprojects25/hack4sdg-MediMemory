@@ -71,7 +71,7 @@ export type SummaryFacts = {
     possible_double_doses: number;
   })[];
   overall: { adherence_pct: number | null; doses_due: number; taken: number; missed: number; taken_late: number };
-  confirmed_by: { patient_button: number; patient_voice: number; caregiver: number };
+  confirmed_by: { patient: number; caregiver: number };
   missed_by_time_of_day: { morning: number; afternoon: number; evening: number; night: number };
   missed_weekday_vs_weekend: {
     weekday_missed: number;
@@ -193,8 +193,7 @@ export function computeFacts({
       taken_late: resolved.filter(takenLate).length,
     },
     confirmed_by: {
-      patient_button: countBy("patient"),
-      patient_voice: countBy("voice"),
+      patient: countBy("patient"),
       caregiver: countBy("caregiver"),
     },
     missed_by_time_of_day: {

@@ -1,114 +1,144 @@
 # MediMemory (藥記通)
 
-A medication tracker for older adults in Hong Kong, their family caregivers and their doctors.
-Built as a Hack4SDG 2026 prototype.
+**Medication tracking for older adults in Hong Kong, with AI summaries for their doctors.**
 
-- **Patient:** signs in on the home page with a username + PIN (or a personal link), then sees one big reminder at a time, confirmed with one large button (or by voice), read aloud in Cantonese or English. Taking the same dose twice is blocked.
-- **Caregiver:** sets up medicines (manual or the simulated hospital import), sees today's doses, adherence charts, duplicate warnings and missed-dose alerts, and writes notes.
-- **Doctor:** signs in by email on the home page and sees every summary shared with that email: a printable, read-only AI summary with the raw log underneath to check every statement.
+Hack4SDG 2026 · Track: Smart Living, Culture & Belonging · Team from HKUST
 
-> This tool records and summarises medication intake. It does not provide medical advice.
-> Hospital prescription sync is **simulated for demonstration**. Use fictional data only.
+**Live demo:** https://hack4sdg-medi-memory.vercel.app
 
-## Tech
-
-Next.js (App Router, TypeScript) · Tailwind CSS · Supabase (Postgres, Auth, Row Level Security) ·
-DeepSeek API through the `openai` package (server side only) · Web Speech API · Recharts · Vercel.
-
-## Run it on your computer
-
-On Windows PowerShell, type `npm.cmd` instead of `npm` (PowerShell blocks `npm` by default).
-
-1. Install [Node.js](https://nodejs.org) (LTS), then install the project's packages:
-   ```bash
-   npm install
-   ```
-2. Create a free project at [supabase.com](https://supabase.com) (region: Singapore).
-3. In Supabase, open **SQL Editor → New query**, paste all of [`supabase/schema.sql`](supabase/schema.sql), and click **Run**.
-   (Already set up with an older version? Run [`supabase/migrations/002_usernames_and_doctor_sharing.sql`](supabase/migrations/002_usernames_and_doctor_sharing.sql) instead.)
-4. In Supabase, open **Authentication → URL Configuration**. Set **Site URL** to `http://localhost:3000` and add the Redirect URL `http://localhost:3000/**`.
-5. Copy `.env.example` to `.env.local` and fill in:
-   | Variable | Where to find it |
-   |---|---|
-   | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API Keys (Project URL) |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the **Publishable** key (or legacy **anon** key) |
-   | `SUPABASE_SERVICE_ROLE_KEY` | the **Secret** key (or legacy **service_role** key). Keep it secret. |
-   | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com) → API keys |
-   | `DEEPSEEK_MODEL` | `deepseek-flash` (default) |
-   | `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` |
-   | `CRON_SECRET` | optional; any long random text |
-6. Check the database connection:
-   ```bash
-   npm run check-db
-   ```
-7. Start the app and open http://localhost:3000:
-   ```bash
-   npm run dev
-   ```
-
-## Demo mode (hackathon)
-
-`DEMO_MODE=true` in `.env.local` (and in Vercel's environment variables) turns off all real sign-in:
-
-- Everyone is the fixed **Demo Caregiver**; Mrs. Chan has a fixed id. Both are in `lib/demo-mode.ts`.
-- The sign-in screens still show, but every button goes straight in. Nothing is checked, saved or sent: no emails, magic links or codes.
-- The patient PIN pad accepts any 4 digits (hint: 1234) and remembers the device.
-- Caregiver data goes through `/api/demo/db`, which uses the service role key on the server and only touches the demo caregiver's rows.
-- The real sign-in code is still there, marked "Disabled for hackathon demo". Set `DEMO_MODE=false` to use it again.
-
-Anyone with the link can see and change the demo data, so use fictional data only.
-
-## 3-minute demo
-
-1. **Caregiver** → sign in with the email link → **Settings → Load demo data**. This loads Mrs. Chan, 78, with 4 medicines and 30 days of history, and a duplicate-aspirin warning on the Medicines tab.
-2. Show the **Today** and **Adherence** tabs.
-3. **Settings → Add a test dose in 1 minute**. On a phone, open the site, tap **I take medicine** and sign in as `mrschan` with the PIN shown in Settings. After a minute the reminder chimes, is read aloud and shows a notification. Tap **I took it**.
-4. Sign in the same way in a second tab and tap **I took it** there too. The app says *"You already took this one at …"*.
-5. Back on **Today**, the dose shows as taken (the page refreshes every 20 seconds).
-6. **Doctor summary** → agree to the notice → **Generate** → review → enter a doctor's email → **Create doctor link**. The doctor taps **I am a doctor** on the home page, signs in with that email and opens the summary. Then show the chart, the sources of each medicine, the raw log, and **Print / Save as PDF**.
-
-## Deploy to Vercel
-
-1. Put the project on GitHub (a private repository is fine). `.env.local` is never committed.
-2. At [vercel.com/new](https://vercel.com/new), import the repository. The framework is detected automatically.
-3. Under **Environment Variables**, add the same variables as in `.env.local`, then click **Deploy**.
-4. In Supabase → **Authentication → URL Configuration**, set **Site URL** to your Vercel address (for example `https://medimemory.vercel.app`) and add `https://medimemory.vercel.app/**` to Redirect URLs.
-5. `vercel.json` runs the missed-dose check once a day (the free plan allows daily jobs). It also runs whenever the patient screen or dashboard loads.
-
-## How it fits together
-
-| Path | What it is |
+<!-- Add screenshots here once taken: put them in docs/images/ and use
+| Patient screen | Doctor summary |
 |---|---|
-| `app/patient`, `components/patient/` | Patient check-in screen (PIN pad, dose, success, already-taken) |
-| `app/caregiver`, `components/caregiver/` | Sign-in, 4-step setup wizard, dashboard tabs |
-| `app/doctor/[token]` | Read-only doctor summary page |
-| `app/api/patient/*` | Patient actions; the PIN is checked on the server |
-| `app/api/summary` | Builds the AI summary (caregiver must be signed in) |
-| `app/api/cron/sweep` | Marks unanswered doses late or missed |
-| `lib/dose-rules.ts` | **All timing rules** (late after 30 min, missed after 90, snooze 10 min, max 3) |
-| `lib/doses.ts` | Works out every dose and its status from the logs |
-| `lib/summary.ts` | Facts computed in code, plus the strict AI prompt |
-| `lib/ai.ts` | The single place that calls the AI (DeepSeek), easy to swap |
-| `lib/translations.ts` | **All wording**, in English and Traditional Chinese |
-| `lib/demo-data.ts` | The fictional Mrs. Chan story |
-| `data/hospital-demo.json` | The simulated hospital prescription |
-| `supabase/schema.sql` | Tables and Row Level Security |
+| ![Patient screen](docs/images/patient.png) | ![Doctor summary](docs/images/doctor-summary.png) |
+-->
+
+---
+
+## Contents
+- [The problem](#the-problem)
+- [Our solution](#our-solution)
+- [How it works](#how-it-works)
+- [Where GenAI is used](#where-genai-is-used)
+- [Key features](#key-features)
+- [Try it in 2 minutes](#try-it-in-2-minutes)
+- [Safety, privacy and ethics](#safety-privacy-and-ethics)
+- [Tech stack](#tech-stack)
+- [Future work](#future-work)
+- [Team](#team)
+
+---
+
+## The problem
+
+Older adults in Hong Kong often take many medicines, forget what they have already taken, and cannot tell their doctor accurately at follow-up.
+
+- **Chronic disease is common.** 74% of older adults in Hong Kong live with a long-term chronic disease, so many manage several medicines every day. ([source](https://pubmed.ncbi.nlm.nih.gov/17664533/))
+- **Many take a lot of medicines at once.** 51.5% of older patients in Hong Kong take more than 5 prescriptions, and about 1 in 3 are at risk of harmful drug interactions, which raises the risk of hospitalisation. ([source](https://pubmed.ncbi.nlm.nih.gov/40329170/))
+- **Doctors decide with missing information.** Records are split across specialists and GPs, and patients, especially those with memory problems, often cannot recall what they actually took. ([source](https://www.ha.org.hk/haho/ho/psrm/E_SESUE2023.pdf))
+
+**Who is affected:** older patients, their family caregivers, and their doctors.
+
+## Our solution
+
+MediMemory keeps an accurate record of every dose at home and turns it into a clear summary for the doctor, so follow-ups no longer depend on memory.
+
+| User | What they do |
+|---|---|
+| **Patient** | Sees one reminder at a time, in large text in Traditional Chinese or English, and confirms with one large button. Sees today's medicines with what is already taken. Taking the same dose twice is blocked. |
+| **Family caregiver** | Adds medicines, sees today's doses and adherence charts, and gets missed-dose alerts and medicine safety warnings. |
+| **Doctor** | Opens a shared link to a printable AI summary, with the raw log underneath to check every statement. |
+
+## How it works
+
+1. **Add the medicines.** The family caregiver enters them, or imports a (simulated) hospital prescription.
+2. **Tap after each dose.** The patient gets a reminder and confirms it. Late and missed doses are recorded automatically.
+3. **Show the record at check-ups.** The AI turns the history into a summary the caregiver reviews and shares with the doctor.
+
+## Where GenAI is used
+
+All AI runs through Google's Gemini API, on the server only.
+
+### 1. Doctor summary
+
+**What it does.** Turns logged doses and caregiver notes into a structured summary for the doctor:
+overview · adherence per medicine · patterns · possible discrepancies · caregiver observations · topics to discuss · limits of the data.
+
+**How.** Facts such as adherence rates, missed and double doses, and common times for missed doses are calculated in code first. Gemini then writes the summary as structured JSON, using a strict prompt, a fixed response schema and a low temperature. If the AI is unavailable, a plain summary is written from the numbers instead and labelled as such.
+
+**Why AI and not a template.** A template can show numbers. The AI links free-text caregiver notes (for example "felt dizzy on Tuesday") to the dose data and writes a summary that fits each patient's pattern.
+
+### 2. Medicine safety check
+
+**What it does.** Looks at the whole medicine list together and flags possible issues for the pharmacist or doctor to review: medicines that may interact, possible double-ups, doses above the usual label maximum, and medicines that need extra care at an older age.
+
+**How.** Only medicine details and an age range are sent. Findings are kept only if they name medicines that are really on the list. The check runs by itself when the medicine list changes, and its findings also appear in the doctor summary. Simple rules in code add warnings for 5 or more daily medicines, the same dose confirmed twice, doses taken close together, and two medicines with the same ingredient.
+
+### What the AI does not do
+
+It does not diagnose, suggest dose changes, or tell anyone to stop or start a medicine. Every safety finding is phrased as a question for the pharmacist or doctor, and the app says the check can be wrong or miss things.
+
+## Key features
+
+- One-tap dose confirmation with large text and clear reminders (chime and notification)
+- Today's medicines on the patient screen, with what is taken and what is next
+- English and Traditional Chinese
+- Double-dose protection, with a short undo for mistaken taps (the family can correct any dose)
+- Late and missed-dose tracking with caregiver alerts
+- Adherence charts and a 30-day history
+- Medicine safety check: duplicates, possible interactions, many medicines
+- AI summary for the doctor, printable and checkable against the raw log
+- Doctor links that the caregiver can revoke
+
+## Try it in 2 minutes
+
+Sign-in is simulated in this prototype. Use fictional data only.
+
+1. Open the [live demo](https://hack4sdg-medi-memory.vercel.app) and choose **I look after someone**.
+2. Click **Try the demo →** at the top. This adds Mrs. Chan, 78, with 4 medicines and 30 days of history. (Later, **Settings → Reset demo** starts it again.)
+3. Look at the **Today** and **Adherence** tabs, and the medicine safety check on **Medicines**.
+4. Open the patient screen in another tab with **My medicines** and PIN **1234**. Use **Settings → Add a test dose in 1 minute** to see a reminder, tap **I took it**, then try again to see the double-dose block.
+5. Open **Doctor summary → Generate**, review it, and create the doctor link.
+6. Open the doctor page to see the summary, chart, safety check, raw log and **Print / Save as PDF**.
 
 ## Safety, privacy and ethics
 
-- The AI only summarises facts computed in code. It is told never to diagnose or suggest dose changes, and always to state the limits of the data.
-- The AI receives no names, addresses, phone numbers or ID numbers. The caregiver agrees to a notice first and reviews every summary before sharing it.
-- Doctor links are 64-character random codes that the caregiver can revoke.
-- The patient never needs an email or password. The PIN is checked only on the server.
-- Row Level Security means a caregiver can only reach their own patients. Anonymous visitors cannot read any table.
-- **Prototype limits:** the PIN is stored as plain text and remembered in the browser, and reminders only work while the page is open. A real deployment would hash PINs, use web push or a native app, and use a locally hosted or approved AI model to meet Hong Kong's Personal Data (Privacy) Ordinance.
+- **Not medical advice.** The app records and summarises intake, and flags possible medicine issues for a professional to review.
+- **Human review.** The caregiver reviews every summary before sharing, and the doctor can check it against the raw log.
+- **Minimal data to the AI.** No names, addresses, phone numbers or ID numbers are sent, and the caregiver agrees to a notice first.
+- **Access control.** Doctor links are long random codes that can be revoked. Each caregiver can only reach their own patients.
+- **Respectful design.** Large text, high contrast, plain words and two languages. The app supports the patient rather than watching them. Safety warnings go to the family, not the patient screen.
 
-## Developer checks
+**Prototype limits:** sign-in is simulated and the demo data is shared by everyone with the link, PINs are not yet hashed, reminders only work while the page is open, and hospital sync is simulated.
 
-```bash
-npm run lint
-```
-```bash
-npm run test-ai
-```
-`test-ai` checks the AI helper against a fake local server. It makes no real API call.
+## Tech stack
+
+Next.js (TypeScript) · Tailwind CSS · Supabase (Postgres) · Google Gemini API (server side only) · Recharts · Vercel
+
+| File | Purpose |
+|---|---|
+| `lib/summary.ts` | Facts computed in code and the summary prompt |
+| `lib/safety.ts` | Safety rules and the safety-check prompt |
+| `lib/ai.ts` | The single place that calls Gemini |
+| `lib/dose-rules.ts` | Timing rules (late, missed, snooze, undo) |
+| `lib/translations.ts` | All wording in English and Traditional Chinese |
+| `app/patient` | Patient check-in screen |
+| `app/doctor/[token]` | Read-only doctor summary page |
+
+## Future work
+
+- Connect to the Hospital Authority and eHealth so prescriptions arrive automatically.
+- Use web push or a native app so reminders work when the page is closed.
+- Hash PINs, use real sign-in, and move to a locally hosted or approved AI model to meet Hong Kong's Personal Data (Privacy) Ordinance.
+- Check the medicine safety findings against a licensed drug-interaction database.
+- Test with older users, caregivers and doctors.
+
+## Team
+
+Anas Asim · Yousuf Khursheed · Danali Satybaldy · Sakief Jamil · Mustafa Ali · Lok To In
+Hong Kong University of Science and Technology (HKUST)
+
+---
+
+> MediMemory records and summarises medication intake. It does not give medical advice. Hospital prescription sync is simulated for demonstration.
+
+Developers: see [docs/SETUP.md](docs/SETUP.md) to run the project locally.

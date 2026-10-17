@@ -6,7 +6,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLanguage } from "@/lib/language";
 import type { Dose, LogResult, PatientInfo } from "@/lib/patient-server";
-import { speak } from "@/lib/speech";
 import { formatTime } from "@/lib/time";
 import { DEMO_MODE } from "@/lib/demo-mode";
 import PinScreen from "./PinScreen";
@@ -161,7 +160,6 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
     try {
       localStorage.removeItem(DEVICE_KEY);
     } catch {}
-    window.speechSynthesis?.cancel();
     setCreds(null);
     setPatient(null);
     setDoses([]);
@@ -170,7 +168,7 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
   }
 
   // "I took it", "Remind me later" or "I pressed this by mistake".
-  async function answer(dose: Dose, action: "taken" | "snooze" | "undo", viaVoice = false) {
+  async function answer(dose: Dose, action: "taken" | "snooze" | "undo") {
     if (!creds || busy) return; // busy also stops an accidental double tap
     setBusy(true);
     try {
@@ -179,25 +177,20 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
         medicationId: dose.medicationId,
         scheduledFor: dose.scheduledFor,
         action,
-        voice: viaVoice,
       });
       if (status === 401) return setView({ kind: "pin", id: creds.id, wrongPin: false });
       if (status >= 500) return setView({ kind: "problem" });
 
       if (data.result === "taken") {
         const time = formatTime(data.takenAt, lang);
-        speak(`${t("pWellDone")} ${t("pTakenAt", { name: dose.name, time })}`, lang);
         setView({ kind: "success", name: dose.name, time });
       } else if (data.result === "alreadyTaken") {
         const time = formatTime(data.takenAt, lang);
-        speak(t("pAlreadyText", { time }), lang);
         setView({ kind: "already", time });
       } else if (data.result === "snoozed") {
         const time = formatTime(data.until, lang);
-        speak(t("pSnoozedText", { time }), lang);
         setView({ kind: "snoozed", time });
       } else if (data.result === "undone") {
-        speak(t("pUndone", { name: dose.name }), lang);
         setView({ kind: "undone", name: dose.name });
       }
       // Anything else (e.g. the dose was closed meanwhile): just show the latest list.
@@ -210,7 +203,6 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
   }
 
   async function backHome() {
-    window.speechSynthesis?.cancel();
     setView({ kind: "home" });
     if (creds) await refresh(creds).catch(() => setView({ kind: "problem" }));
   }
@@ -325,7 +317,7 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
             dose={due[0]}
             position={due.length > 1 ? { n: 1, total: due.length } : null}
             busy={busy}
-            onTaken={(viaVoice) => answer(due[0], "taken", viaVoice)}
+            onTaken={() => answer(due[0], "taken")}
             onSnooze={() => answer(due[0], "snooze")}
           />
         );

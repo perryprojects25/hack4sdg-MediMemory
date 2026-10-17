@@ -88,7 +88,7 @@ create table intake_logs (
   scheduled_for timestamptz not null,     -- the dose time this log is about
   status        text not null check (status in ('taken', 'late', 'missed', 'snoozed', 'skipped')),
   logged_at     timestamptz not null default now(),
-  logged_by     text not null check (logged_by in ('patient', 'caregiver', 'voice', 'auto'))
+  logged_by     text not null check (logged_by in ('patient', 'caregiver', 'auto'))
 );
 
 create index intake_logs_patient_time on intake_logs (patient_id, scheduled_for);

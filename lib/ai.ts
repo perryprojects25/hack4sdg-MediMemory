@@ -1,20 +1,18 @@
-// The ONE place the app talks to an AI model. Every AI feature goes through
-// generateJSON(), so the provider can be swapped by changing .env.local only.
+// The ONE place the app talks to the AI: Google Gemini. Every AI feature goes through
+// generateJSON(). Gemini is called through its OpenAI-compatible endpoint with the
+// standard `openai` package, from the server only.
 //
-// Any OpenAI-compatible provider works, through the standard `openai` package:
-//   AI_API_KEY   the provider's key (server-side only; never sent to the browser)
-//   AI_BASE_URL  e.g. https://generativelanguage.googleapis.com/v1beta/openai/  (Google Gemini)
-//                or   https://api.deepseek.com                                  (DeepSeek)
-//   AI_MODEL     e.g. gemini-3-flash-preview  or  deepseek-flash
-//                A comma-separated list is tried in order, e.g.
-//                "gemini-3-flash-preview,gemini-3.1-flash-lite": if a model is busy or not
-//                allowed for this key, the next one is used.
-// The older DEEPSEEK_API_KEY / DEEPSEEK_BASE_URL / DEEPSEEK_MODEL still work if AI_API_KEY is empty.
+// Settings (.env.local, and in Vercel):
+//   GEMINI_API_KEY  the key from https://aistudio.google.com/apikey (server-side only;
+//                   never sent to the browser)
+//   GEMINI_MODEL    optional. A comma-separated list is tried in order: if a model is busy
+//                   or not allowed for this key, the next one is used.
+//                   Default: "gemini-3-flash-preview,gemini-3.1-flash-lite"
+// (AI_API_KEY / AI_MODEL, the earlier names, are still read so an existing setup keeps working.)
 //
-// Provider notes (checked 2026-10-13):
-//   - Gemini (OpenAI-compatible endpoint): reasoning_effort "none" turns thinking off on
-//     2.5 models; Gemini 3 models can only go down to "minimal".
-//   - DeepSeek: thinking is on by default; thinking: { type: "disabled" } turns it off.
+// Notes (checked 2026-10-13):
+//   - reasoning_effort "none" turns thinking off on 2.5 models; Gemini 3 models can only
+//     go down to "minimal".
 //   - We ask for JSON (response_format json_object, plus the word "json" and an example in
 //     the prompt), use a low temperature, and retry once if the answer is unusable.
 
@@ -30,21 +28,21 @@ export class AiError extends Error {
   }
 }
 
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/";
+const DEFAULT_MODELS = "gemini-3-flash-preview,gemini-3.1-flash-lite";
+
 function settings() {
-  const useGeneric = Boolean(process.env.AI_API_KEY);
   return {
-    apiKey: useGeneric ? process.env.AI_API_KEY : process.env.DEEPSEEK_API_KEY,
-    baseURL: (useGeneric ? process.env.AI_BASE_URL : process.env.DEEPSEEK_BASE_URL) || "https://api.deepseek.com",
-    model: (useGeneric ? process.env.AI_MODEL : process.env.DEEPSEEK_MODEL) || "deepseek-flash",
+    apiKey: process.env.GEMINI_API_KEY || process.env.AI_API_KEY,
+    // GEMINI_BASE_URL is only set by the offline test (scripts/test-ai.mts).
+    baseURL: process.env.GEMINI_BASE_URL || GEMINI_BASE_URL,
+    model: process.env.GEMINI_MODEL || process.env.AI_MODEL || DEFAULT_MODELS,
   };
 }
 
-// Extra request options that only some providers understand: switch "thinking" off
-// (faster, cheaper, and temperature works).
-function providerOptions(baseURL: string, model: string): Record<string, unknown> {
-  if (baseURL.includes("deepseek")) return { thinking: { type: "disabled" } };
-  if (baseURL.includes("googleapis")) return { reasoning_effort: model.includes("2.5") ? "none" : "minimal" };
-  return {};
+// Switch Gemini's "thinking" down (faster, and temperature works).
+function geminiOptions(model: string): Record<string, unknown> {
+  return { reasoning_effort: model.includes("2.5") ? "none" : "minimal" };
 }
 
 // Gets the JSON object out of an answer, even if the model wrapped it in ```json fences.
@@ -64,7 +62,7 @@ let clientKey = "";
 
 function getClient(): { openai: OpenAI; models: string[]; baseURL: string } {
   const { apiKey, baseURL, model } = settings();
-  if (!apiKey) throw new AiError("not_configured", "AI_API_KEY is not set in .env.local");
+  if (!apiKey) throw new AiError("not_configured", "GEMINI_API_KEY is not set in .env.local");
   if (!client || clientKey !== apiKey + baseURL) {
     client = new OpenAI({ apiKey, baseURL, timeout: 60_000, maxRetries: 1 });
     clientKey = apiKey + baseURL;
@@ -130,7 +128,7 @@ async function askModel<T>(
         response_format: { type: "json_object" },
         max_tokens: maxTokens,
         temperature,
-        ...providerOptions(baseURL, model),
+        ...geminiOptions(model),
       };
       const completion = await openai.chat.completions.create(
         params as unknown as OpenAI.Chat.ChatCompletionCreateParamsNonStreaming

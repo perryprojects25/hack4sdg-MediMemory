@@ -22,9 +22,9 @@ const server = http.createServer((req, res) => {
 });
 await new Promise<void>((r) => server.listen(4010, r));
 
-process.env.DEEPSEEK_API_KEY = "test-key";
-process.env.DEEPSEEK_BASE_URL = "http://localhost:4010";
-process.env.DEEPSEEK_MODEL = "deepseek-flash";
+process.env.GEMINI_API_KEY = "test-key";
+process.env.GEMINI_BASE_URL = "http://localhost:4010";
+process.env.GEMINI_MODEL = "gemini-test";
 const { generateJSON } = await import("../lib/ai");
 const { SYSTEM_PROMPT, isAiSummary, userPrompt } = await import("../lib/summary");
 
@@ -32,7 +32,7 @@ const fakeFacts = { period: { start: "2026-10-01", end: "2026-10-13", days: 13 }
 const result = await generateJSON({ system: SYSTEM_PROMPT, user: userPrompt(fakeFacts, "en"), isValid: isAiSummary });
 const sent = requests[0];
 console.log("calls made:", requests.length, "(1 broken + 1 retry expected = 2)");
-console.log("model:", sent.model, "| thinking:", JSON.stringify(sent.thinking), "| response_format:", JSON.stringify(sent.response_format));
+console.log("model:", sent.model, "| reasoning_effort:", sent.reasoning_effort, "| response_format:", JSON.stringify(sent.response_format));
 console.log("temperature:", sent.temperature, "| max_tokens:", sent.max_tokens);
 console.log("prompt mentions json:", /json/i.test(sent.messages[0].content + sent.messages[1].content));
 console.log("result overview:", result.overview, "| reasoning leaked:", JSON.stringify(result).includes("SECRET"));

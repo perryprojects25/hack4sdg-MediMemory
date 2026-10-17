@@ -32,7 +32,6 @@ const TEXT = {
       `${d.medicine} on ${d.date} (${d.scheduled_time}) was confirmed more than once: ${d.confirmations.join(", ")}.`,
     byCaregiver: (n: number, total: number) =>
       `${n} of ${total} taken doses were confirmed by the caregiver rather than the patient.`,
-    byVoice: (n: number) => `${n} doses were confirmed by voice.`,
     askRoutine: (part: string) => `Could the patient describe their usual routine in the ${part}?`,
     askDouble: "How does the patient keep track of doses when someone else helps?",
     askGap: (g: SummaryFacts["gaps_over_24h_without_any_dose_taken"][number]) =>
@@ -71,12 +70,10 @@ const TEXT = {
           c
             .replace(/(\d{2}:\d{2}) by patient/, "$1 病人確認")
             .replace(/(\d{2}:\d{2}) by caregiver/, "$1 照顧者確認")
-            .replace(/(\d{2}:\d{2}) by voice/, "$1 病人以語音確認")
             .replace(/(\d{2}:\d{2}) by auto/, "$1 系統記錄")
         )
         .join("、")}。`,
     byCaregiver: (n: number, total: number) => `${total} 次已服用的劑量中，有 ${n} 次由照顧者而非病人確認。`,
-    byVoice: (n: number) => `有 ${n} 次以語音確認。`,
     askRoutine: (part: string) => `病人可否講講自己${part}的日常習慣？`,
     askDouble: "有其他人幫手時，病人如何記住自己有沒有服藥？",
     askGap: (g: SummaryFacts["gaps_over_24h_without_any_dose_taken"][number]) =>
@@ -107,7 +104,6 @@ export function buildFallbackSummary(f: SummaryFacts, lang: "en" | "zh"): AiSumm
 
   const discrepancies: string[] = f.possible_double_doses.map(T.double);
   if (f.confirmed_by.caregiver > 0) discrepancies.push(T.byCaregiver(f.confirmed_by.caregiver, f.overall.taken));
-  if (f.confirmed_by.patient_voice > 0) discrepancies.push(T.byVoice(f.confirmed_by.patient_voice));
 
   const topics: string[] = [];
   if (missedTotal > 0 && topCount > 0) topics.push(T.askRoutine(T.part[topPart]));

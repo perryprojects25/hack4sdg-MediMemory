@@ -33,7 +33,7 @@ export type LogForDoses = {
   scheduled_for: string;
   status: string; // taken | late | missed | snoozed | skipped
   logged_at: string;
-  logged_by: string; // patient | caregiver | voice | auto
+  logged_by: string; // patient | caregiver | auto
 };
 
 export type DoseStatus =

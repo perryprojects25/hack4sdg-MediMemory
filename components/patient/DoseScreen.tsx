@@ -1,14 +1,13 @@
 "use client";
 
 // One dose, big and picture-based, with two main buttons:
-// green "I took it" and amber "Remind me later". It is read aloud when it appears.
+// green "I took it" and amber "Remind me later". A gentle chime plays when it appears.
 
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/lib/language";
 import { MAX_SNOOZES } from "@/lib/dose-rules";
 import { colorOption, shapeOption } from "@/lib/medicine-options";
 import type { Dose } from "@/lib/patient-server";
-import { canListen, speak, startListening } from "@/lib/speech";
 import { playChime, showNotification } from "@/lib/reminders";
 import { formatTime } from "@/lib/time";
 import PillIcon from "@/components/PillIcon";
@@ -24,45 +23,26 @@ export default function DoseScreen({
   dose: Dose;
   position: { n: number; total: number } | null;
   busy: boolean;
-  onTaken: (viaVoice: boolean) => void;
+  onTaken: () => void;
   onSnooze: () => void;
 }) {
   const { t, lang } = useLanguage();
-  const [listening, setListening] = useState(false);
-  const [notUnderstood, setNotUnderstood] = useState(false);
   const [pressed, setPressed] = useState<"taken" | "snooze" | null>(null); // shows "Saving…" on that button
 
   // "White round tablet" / "白色圓形藥丸"
   const color = t(colorOption(dose.color).labelKey);
   const shape = t(shapeOption(dose.shape).labelKey);
   const pill = lang === "zh" ? `${color}${shape}` : `${color} ${shape.toLowerCase()}`;
-  const spokenText = t("pSpokenDose", { name: dose.name, dose: dose.dose, pill });
   const canSnooze = dose.snoozeCount < MAX_SNOOZES;
 
-  // When this dose appears: gentle chime, then read it aloud, plus a browser
-  // notification if the page is in the background.
-  // (Browsers may block sound until the person has tapped the page once; "Read again" always works.)
+  // When this dose appears: a gentle chime, plus a browser notification if the page is
+  // in the background. (Browsers may block sound until the person has tapped the page once.)
   useEffect(() => {
     playChime();
-    const timer = setTimeout(() => speak(spokenText, lang), 900);
     if (document.visibilityState !== "visible") showNotification(t("pTimeFor"), `${dose.name} · ${dose.dose}`);
-    return () => clearTimeout(timer);
     // Only when a new dose appears, not when the language changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dose.medicationId, dose.scheduledFor]);
-
-  function listen() {
-    setNotUnderstood(false);
-    setListening(true);
-    startListening(lang, {
-      onYes: () => {
-        setPressed("taken");
-        onTaken(true);
-      },
-      onNotUnderstood: () => setNotUnderstood(true),
-      onEnd: () => setListening(false),
-    });
-  }
 
   return (
     <Center>
@@ -84,7 +64,7 @@ export default function DoseScreen({
           type="button"
           onClick={() => {
             setPressed("taken");
-            onTaken(false);
+            onTaken();
           }}
           disabled={busy}
           className="min-h-24 w-full rounded-3xl bg-green-700 text-4xl font-bold text-white hover:bg-green-800 focus:outline-none focus-visible:ring-4 focus-visible:ring-green-300 disabled:opacity-60"
@@ -108,31 +88,6 @@ export default function DoseScreen({
           <p className="text-2xl text-slate-800">{t("pLastReminder")}</p>
         )}
 
-        {/* Optional helpers: read aloud again, and answer by voice */}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => speak(spokenText, lang)}
-            className="min-h-16 flex-1 rounded-3xl border-2 border-slate-500 bg-white text-2xl font-semibold text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
-          >
-            🔊 {t("pReadAgain")}
-          </button>
-          {canListen() && (
-            <button
-              type="button"
-              onClick={listen}
-              disabled={listening || busy}
-              className="min-h-16 flex-1 rounded-3xl border-2 border-slate-500 bg-white text-2xl font-semibold text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300 disabled:bg-teal-50"
-            >
-              🎤 {listening ? t("pListening") : t("pSayYes")}
-            </button>
-          )}
-        </div>
-        {notUnderstood && (
-          <p role="status" className="text-2xl text-slate-900">
-            {t("pNotUnderstood")}
-          </p>
-        )}
       </div>
     </Center>
   );

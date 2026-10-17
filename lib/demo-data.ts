@@ -1,6 +1,6 @@
 // "Load demo data": a realistic, FICTIONAL story so the app can be demoed in
 // 3 minutes. Mrs. Chan, 78, Cantonese speaking, with 30 days of history:
-//   - mostly taken, some taken late, some confirmed by voice or by the caregiver
+//   - mostly taken, some taken late, some confirmed by the caregiver
 //   - evening doses missed more often at weekends
 //   - one day with a possible double dose
 //   - a 2-day gap with nothing confirmed (the phone was left elsewhere)
@@ -185,7 +185,7 @@ export async function loadDemo(
           logs.push({ ...base, status: "late", logged_by: "auto", logged_at: iso(due + 30 * MINUTE) });
         }
         const who = random();
-        const loggedBy = isDoubleDose || who < 0.72 ? "patient" : who < 0.86 ? "voice" : "caregiver";
+        const loggedBy = isDoubleDose || who < 0.86 ? "patient" : "caregiver";
         logs.push({ ...base, status: "taken", logged_by: loggedBy, logged_at: iso(due + delay * MINUTE) });
       }
     }

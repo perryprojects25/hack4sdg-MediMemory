@@ -20,6 +20,8 @@ const ETHICS: TranslationKey[] = [
   "aboutEthics6",
   "aboutEthics7",
 ];
+// The point marked with a star, explained in the note under the list.
+const STARRED: TranslationKey = "aboutEthics2";
 const DEMO: TranslationKey[] = ["aboutDemo1", "aboutDemo2", "aboutDemo3"];
 
 export default function AboutPage() {
@@ -48,10 +50,19 @@ export default function AboutPage() {
       <ul className="mt-4 flex flex-col gap-3">
         {ETHICS.map((key) => (
           <li key={key} className="rounded-2xl border-2 border-teal-200 bg-teal-50 p-4 text-lg leading-relaxed">
-            {t(key, { provider: process.env.NEXT_PUBLIC_AI_PROVIDER_NAME || "Google Gemini" })}
+            {t(key, { provider: "Google Gemini" })}
+            {key === STARRED && (
+              <sup className="ml-1 text-xl font-bold text-teal-800" aria-label={t("aboutStarLabel")}>
+                *
+              </sup>
+            )}
           </li>
         ))}
       </ul>
+      <p className="mt-3 text-lg leading-relaxed text-slate-800">
+        <span className="font-bold text-teal-800" aria-hidden="true">* </span>
+        {t("aboutAiNote")}
+      </p>
 
       <h2 className="mt-10 text-2xl font-bold">🧪 {t("aboutDemoTitle")}</h2>
       <ul className="mt-4 flex flex-col gap-3">

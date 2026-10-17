@@ -31,7 +31,6 @@ const STATUS_KEY: Record<string, TranslationKey> = {
 const BY_KEY: Record<string, TranslationKey> = {
   patient: "byPatient",
   caregiver: "byCaregiver",
-  voice: "byVoice",
   auto: "byAuto",
 };
 

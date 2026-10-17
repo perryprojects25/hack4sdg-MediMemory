@@ -9,8 +9,8 @@ import { Card, PrimaryButton } from "@/components/ui";
 
 // Bumped when the AI provider changed, so caregivers see the updated notice again.
 export const CONSENT_KEY = "medimemory-ai-consent-v2";
-// Shown in the consent notice. Set NEXT_PUBLIC_AI_PROVIDER_NAME in .env.local to match AI_BASE_URL.
-const AI_PROVIDER = process.env.NEXT_PUBLIC_AI_PROVIDER_NAME || "Google Gemini";
+// The AI service named in the consent notice (lib/ai.ts).
+const AI_PROVIDER = "Google Gemini";
 
 export function hasAiConsent(): boolean {
   try {

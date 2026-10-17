@@ -34,9 +34,7 @@ export default function TodayTab({
 
   // Who confirmed a dose, in caregiver wording: their loved one's name, not "the patient".
   const who = (loggedBy: string | null) =>
-    loggedBy === "voice"
-      ? t("whoVoice", { name: patient.name })
-      : loggedBy === "caregiver"
+    loggedBy === "caregiver"
         ? t("whoCaregiver")
         : loggedBy === "auto"
           ? t("whoApp")

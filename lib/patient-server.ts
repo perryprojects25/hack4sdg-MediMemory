@@ -165,8 +165,7 @@ export async function logDose(
   todayDoses: Dose[],
   medicationId: unknown,
   scheduledForInput: unknown,
-  action: unknown,
-  viaVoice: boolean
+  action: unknown
 ): Promise<LogResult> {
   if (typeof medicationId !== "string" || !UUID_PATTERN.test(medicationId)) return { result: "invalid" };
   if (typeof scheduledForInput !== "string" || isNaN(Date.parse(scheduledForInput))) return { result: "invalid" };
@@ -217,7 +216,7 @@ export async function logDose(
 
   const { data, error } = await supabase
     .from("intake_logs")
-    .insert({ ...base, status: "taken", logged_by: viaVoice ? "voice" : "patient" })
+    .insert({ ...base, status: "taken", logged_by: "patient" })
     .select("logged_at")
     .single();
   if (error) throw new Error(error.message);

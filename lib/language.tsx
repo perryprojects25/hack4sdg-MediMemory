@@ -41,7 +41,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // On the server we always render English; the browser then switches to the saved language.
   const lang = useSyncExternalStore(subscribe, readLang, () => "en" as Lang);
 
-  // Keep the <html lang> attribute correct, which helps screen readers and voices.
+  // Keep the <html lang> attribute correct, which helps screen readers.
   useEffect(() => {
     document.documentElement.lang = lang === "zh" ? "zh-HK" : "en";
   }, [lang]);
