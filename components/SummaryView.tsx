@@ -1,7 +1,7 @@
 "use client";
 
 // Renders a doctor summary: disclaimer, AI-written sections, adherence chart,
-// medicine list (with where each came from) and the raw log to verify against.
+// medicine list (with where each came from), the medicine safety check, and the raw log to verify against.
 // Used for the caregiver's preview and on the doctor's read-only page.
 
 import { useLanguage } from "@/lib/language";
@@ -10,6 +10,7 @@ import type { TranslationKey } from "@/lib/translations";
 import { formatTime } from "@/lib/time";
 import PillIcon from "@/components/PillIcon";
 import AdherenceBarChart, { chartLabel } from "@/components/AdherenceBarChart";
+import { AiFindingList, RuleFindingList } from "@/components/SafetyFindings";
 
 const SECTIONS: { key: keyof SummaryContent["summary"]; titleKey: TranslationKey }[] = [
   { key: "adherence_by_medicine", titleKey: "sumAdherence" },
@@ -137,6 +138,33 @@ export default function SummaryView({ content }: { content: SummaryContent }) {
           ))}
         </ul>
       </section>
+
+      {/* Medicine safety check (summaries made before this feature have none) */}
+      {content.safety && (
+        <section>
+          <h2 className="text-xl font-bold">{t("sumSafetyTitle")}</h2>
+          <p className="mt-1 text-base text-slate-800">{t("sumSafetyIntro")}</p>
+          {content.safety.appChecks.length === 0 && content.safety.aiFindings?.length === 0 ? (
+            <p className="mt-2 text-lg text-slate-700">{t("sumNone")}</p>
+          ) : (
+            <>
+              {content.safety.appChecks.length > 0 && (
+                <>
+                  <h3 className="mt-3 text-lg font-semibold">{t("safetyRulesTitle")}</h3>
+                  <RuleFindingList findings={content.safety.appChecks} />
+                </>
+              )}
+              {content.safety.aiFindings && content.safety.aiFindings.length > 0 && (
+                <>
+                  <h3 className="mt-3 text-lg font-semibold">{t("safetyAiTitle")}</h3>
+                  <AiFindingList findings={content.safety.aiFindings} forDoctor />
+                </>
+              )}
+            </>
+          )}
+          {content.safety.aiFindings === null && <p className="mt-2 text-base text-slate-700">{t("sumSafetyAiOff")}</p>}
+        </section>
+      )}
 
       {SECTIONS.map(({ key, titleKey }) => (
         <section key={key} className="break-inside-avoid">

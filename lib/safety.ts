@@ -12,8 +12,6 @@
 // ask the pharmacist or doctor about, and the caregiver is told not to stop or change
 // any medicine because of it.
 
-import type { IntakeLog } from "./caregiver-data";
-import type { Medication } from "./types";
 import { hongKongDate } from "./doses";
 
 // ---------------------------------------------------------------------------
@@ -29,22 +27,27 @@ const HOUR = 60 * 60 * 1000;
 
 export type RuleFinding =
   | { kind: "manyMedicines"; count: number }
+  | { kind: "duplicate"; a: string; b: string } // from lib/duplicates.ts (added for the doctor summary)
   | { kind: "extraDose"; medicine: string; scheduledFor: string; count: number }
   | { kind: "closeDoses"; medicine: string; firstAt: string; secondAt: string };
 
-export function ruleChecks(meds: Medication[], logs: IntakeLog[], now = new Date()): RuleFinding[] {
+type RuleMed = { id: string; name: string; active: boolean };
+type RuleLog = { medication_id: string; scheduled_for: string; status: string; logged_at: string };
+
+// sinceMs: how far back to look (default: the last SAFETY_LOOKBACK_DAYS days).
+export function ruleChecks(meds: RuleMed[], logs: RuleLog[], now = new Date(), sinceMs?: number): RuleFinding[] {
   const findings: RuleFinding[] = [];
   const active = meds.filter((m) => m.active);
   if (active.length >= MANY_MEDICINES) findings.push({ kind: "manyMedicines", count: active.length });
 
-  const since = now.getTime() - SAFETY_LOOKBACK_DAYS * 24 * HOUR;
+  const since = sinceMs ?? now.getTime() - SAFETY_LOOKBACK_DAYS * 24 * HOUR;
   const nameOf = new Map(meds.map((m) => [m.id, m.name]));
   const taken = logs
     .filter((l) => l.status === "taken" && new Date(l.logged_at).getTime() >= since)
     .sort((a, b) => a.logged_at.localeCompare(b.logged_at));
 
   // The same dose confirmed more than once.
-  const perDose = new Map<string, IntakeLog[]>();
+  const perDose = new Map<string, RuleLog[]>();
   for (const log of taken) {
     const key = `${log.medication_id}|${new Date(log.scheduled_for).toISOString()}`;
     perDose.set(key, [...(perDose.get(key) ?? []), log]);
@@ -61,7 +64,7 @@ export function ruleChecks(meds: Medication[], logs: IntakeLog[], now = new Date
   }
 
   // Two different doses of the same medicine confirmed less than 2 hours apart.
-  const perMedicine = new Map<string, IntakeLog[]>();
+  const perMedicine = new Map<string, RuleLog[]>();
   for (const log of taken) perMedicine.set(log.medication_id, [...(perMedicine.get(log.medication_id) ?? []), log]);
   for (const [medId, list] of perMedicine) {
     for (let i = 1; i < list.length; i++) {
@@ -96,6 +99,9 @@ export type AiFinding = {
 };
 
 export type SafetyResult = { findings: AiFinding[]; checkedAt: string };
+
+// Stored with a doctor summary. aiFindings is null if the AI was unavailable.
+export type SummarySafety = { appChecks: RuleFinding[]; aiFindings: AiFinding[] | null; checkedAt: string };
 
 export function isAiSafety(value: unknown): value is { findings: AiFinding[] } {
   if (typeof value !== "object" || value === null) return false;

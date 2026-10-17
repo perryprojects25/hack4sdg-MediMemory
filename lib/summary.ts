@@ -6,6 +6,7 @@
 import { adherenceByMedicine, adherencePct, isResolved, takenLate } from "./adherence";
 import { buildDoses, addDays, hongKongDate, weekdayOf, type DoseInstance, type LogForDoses, type MedForDoses } from "./doses";
 import { TIME_ZONE } from "./dose-rules";
+import type { SummarySafety } from "./safety";
 
 // ---------------------------------------------------------------------------
 // What the AI must return
@@ -304,5 +305,6 @@ export type SummaryContent = {
   facts: SummaryFacts;
   medications: SummaryMedication[];
   rawLog: RawLogRow[];
+  safety?: SummarySafety; // medicine safety check (missing in summaries made before it existed)
   generatedAt: string;
 };

@@ -1,20 +1,13 @@
 // POST /api/safety  { patientId, language }  (header: Authorization: Bearer <caregiver token>)
-// AI medicine safety check: looks at the patient's whole active medicine list for
-// possible interactions, double-ups, doses to ask about, and medicines that need
-// extra care at an older age. Only medicine details and an age band are sent to the
-// AI, never the name. Results are things to ask the pharmacist about, never advice.
+// AI medicine safety check for the dashboard: looks at the patient's whole active
+// medicine list for possible interactions, double-ups, doses to ask about, and
+// medicines that need extra care at an older age (lib/safety-server.ts).
+// Results are things to ask the pharmacist about, never advice.
 
-import { AiError, generateJSON } from "@/lib/ai";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { DEMO_CAREGIVER, DEMO_MODE } from "@/lib/demo-mode";
-import {
-  SAFETY_SYSTEM_PROMPT,
-  cleanFindings,
-  isAiSafety,
-  safetyUserPrompt,
-  type SafetyMedicine,
-  type SafetyResult,
-} from "@/lib/safety";
+import { aiSafetyCheck } from "@/lib/safety-server";
+import type { SafetyResult } from "@/lib/safety";
 
 export const maxDuration = 60; // seconds; the AI call can take a while
 
@@ -44,38 +37,17 @@ export async function POST(request: Request) {
 
     const { data: meds, error } = await supabase
       .from("medications")
-      .select("name, dose, form, instructions, schedules(time_of_day)")
+      .select("name, dose, form, instructions, active, schedules(time_of_day)")
       .eq("patient_id", patient.id)
-      .eq("active", true)
       .order("created_at");
     if (error) throw new Error(error.message);
 
-    const medicines: SafetyMedicine[] = (meds ?? []).map((m) => ({
-      name: m.name,
-      dose: m.dose,
-      form: m.form,
-      times: ((m.schedules ?? []) as { time_of_day: string }[]).map((s) => s.time_of_day.slice(0, 5)).sort(),
-      instructions: m.instructions,
-    }));
+    const findings = await aiSafetyCheck(patient.age, meds ?? [], language === "zh" ? "zh" : "en");
+    // AI unavailable: the app's own (rule-based) checks still show on the dashboard.
+    if (findings === null) return Response.json({ error: "ai_unavailable" }, { status: 503 });
 
-    const result: SafetyResult = { findings: [], checkedAt: new Date().toISOString() };
-    if (medicines.length < 2) return Response.json(result); // nothing to compare
-
-    try {
-      const answer = await generateJSON({
-        system: SAFETY_SYSTEM_PROMPT,
-        user: safetyUserPrompt(patient.age, medicines, language === "zh" ? "zh" : "en"),
-        isValid: isAiSafety,
-        maxTokens: 3000,
-      });
-      result.findings = cleanFindings(answer.findings, medicines.map((m) => m.name));
-      return Response.json(result);
-    } catch (err) {
-      if (!(err instanceof AiError)) throw err;
-      console.error("safety check: AI unavailable", err.code);
-      // The app's own (rule-based) checks still show on the dashboard.
-      return Response.json({ error: "ai_unavailable" }, { status: 503 });
-    }
+    const result: SafetyResult = { findings, checkedAt: new Date().toISOString() };
+    return Response.json(result);
   } catch (err) {
     console.error("safety check failed", err);
     return Response.json({ error: "server" }, { status: 500 });

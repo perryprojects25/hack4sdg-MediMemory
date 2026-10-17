@@ -8,6 +8,10 @@ import { LOG_COLUMNS, MED_COLUMNS, addDays, dayStartISO, type LogForDoses, type 
 import { SYSTEM_PROMPT, computeFacts, isAiSummary, userPrompt, type AiSummary } from "@/lib/summary";
 import { buildFallbackSummary } from "@/lib/summary-fallback";
 import { DEMO_CAREGIVER, DEMO_MODE } from "@/lib/demo-mode";
+import { findDuplicates } from "@/lib/duplicates";
+import { ruleChecks, type RuleFinding, type SummarySafety } from "@/lib/safety";
+import { aiSafetyCheck } from "@/lib/safety-server";
+import type { Medication } from "@/lib/types";
 
 export const maxDuration = 60; // seconds; the AI call can take a while
 
@@ -64,9 +68,18 @@ export async function POST(request: Request) {
       end,
     });
 
-    // 4. Ask the AI to write them up (de-identified: no names, no IDs).
-    //    If the AI is unavailable, write it from the numbers instead (clearly labelled).
+    // 4. Medicine safety check for the doctor: the app's own checks over the period,
+    //    plus the AI check of the current medicine list (run alongside the summary).
     const lang = language === "zh" ? "zh" : "en";
+    const meds = medsResult.data as MedForDoses[];
+    const appChecks: RuleFinding[] = [
+      ...findDuplicates(meds as unknown as Medication[]).map(({ a, b }) => ({ kind: "duplicate" as const, a: a.name, b: b.name })),
+      ...ruleChecks(meds, logsResult.data as LogForDoses[], new Date(), new Date(dayStartISO(start)).getTime()),
+    ];
+    const safetyPromise = aiSafetyCheck(patient.age, meds, lang);
+
+    // 5. Ask the AI to write the summary up (de-identified: no names, no IDs).
+    //    If the AI is unavailable, write it from the numbers instead (clearly labelled).
     let summary: AiSummary;
     let writtenBy: "ai" | "automatic" = "ai";
     try {
@@ -83,6 +96,11 @@ export async function POST(request: Request) {
       summary = buildFallbackSummary(facts, lang);
       writtenBy = "automatic";
     }
+    const safety: SummarySafety = {
+      appChecks,
+      aiFindings: await safetyPromise.catch(() => null),
+      checkedAt: new Date().toISOString(),
+    };
 
     return Response.json({
       patient: { name: patient.name, age: patient.age }, // shown to the doctor, never sent to the AI
@@ -93,6 +111,7 @@ export async function POST(request: Request) {
       facts,
       medications,
       rawLog,
+      safety,
       generatedAt: new Date().toISOString(),
     });
   } catch (err) {
