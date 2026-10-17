@@ -9,9 +9,10 @@ import { selectPatient } from "@/lib/caregiver-data";
 import { DEMO_MARK } from "@/lib/demo-data";
 import { formatTime } from "@/lib/time";
 import type { Caregiver, Patient } from "@/lib/types";
-import { UserPlus } from "lucide-react";
+import { ShieldAlert, UserPlus } from "lucide-react";
 import { ErrorBox, SecondaryButton } from "@/components/ui";
 import { usePatientData } from "./usePatientData";
+import { useSafetyCheck } from "./useSafetyCheck";
 import TodayTab from "./TodayTab";
 import AdherenceTab from "./AdherenceTab";
 import MedicinesTab from "./MedicinesTab";
@@ -53,6 +54,8 @@ export default function Dashboard({
   const [tab, setTab] = useState("today");
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const { data, failed, reload } = usePatientData(patient);
+  const safety = useSafetyCheck(patient, data);
+  const [safetyHidden, setSafetyHidden] = useState(false);
 
   // Red alert: doses missed in the last 24 hours (not yet dismissed).
   const missed =
@@ -124,6 +127,24 @@ export default function Dashboard({
         </div>
       )}
 
+      {/* Medicine safety check: shown as soon as there is something to ask the pharmacist about */}
+      {safety.count > 0 && !safetyHidden && tab !== "medicines" && (
+        <div role="alert" className="flex flex-col gap-3 rounded-2xl border-2 border-amber-600 bg-amber-50 p-4 text-amber-950 sm:flex-row sm:items-center">
+          <p className="flex flex-1 items-center gap-2 text-xl font-bold">
+            <ShieldAlert aria-hidden="true" className="h-7 w-7 shrink-0" />
+            {t("safetyBanner", { n: safety.count })}
+          </p>
+          <div className="flex gap-2">
+            <SecondaryButton className="min-h-12 text-lg" onClick={() => setTab("medicines")}>
+              {t("safetyBannerOpen")}
+            </SecondaryButton>
+            <SecondaryButton className="min-h-12 text-lg" onClick={() => setSafetyHidden(true)}>
+              {t("alertDismiss")}
+            </SecondaryButton>
+          </div>
+        </div>
+      )}
+
       {/* Tabs (scroll sideways on small phones) */}
       <div role="tablist" aria-label={t("dashTabs")} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {TABS.map((item) => (
@@ -153,7 +174,7 @@ export default function Dashboard({
         )}
         {data && tab === "today" && <TodayTab patient={patient} data={data} reload={reload} />}
         {data && tab === "adherence" && <AdherenceTab data={data} />}
-        {data && tab === "medicines" && <MedicinesTab patient={patient} data={data} reload={reload} />}
+        {data && tab === "medicines" && <MedicinesTab patient={patient} data={data} reload={reload} safety={safety} />}
         {data && tab === "notes" && <NotesTab patient={patient} data={data} reload={reload} />}
         {tab === "summary" && <SummaryTab patient={patient} />}
         {tab === "settings" && (

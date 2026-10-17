@@ -13,13 +13,10 @@ import type { SummaryContent } from "@/lib/summary";
 import type { Patient } from "@/lib/types";
 import SummaryView from "@/components/SummaryView";
 import { Card, ErrorBox, Field, PrimaryButton, SecondaryButton, inputClass } from "@/components/ui";
+import AiConsentCard, { hasAiConsent } from "./AiConsent";
 
-// Bumped when the AI provider changed, so caregivers see the updated notice again.
-const CONSENT_KEY = "medimemory-ai-consent-v2";
-// Shown in the consent notice. Set NEXT_PUBLIC_AI_PROVIDER_NAME in .env.local to match AI_BASE_URL.
-const AI_PROVIDER = process.env.NEXT_PUBLIC_AI_PROVIDER_NAME || "Google Gemini";
 const PERIODS = [7, 14, 30] as const;
-const EMAIL_PATTERN = /^[^s@]+@[^s@]+.[^s@]+$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type SavedSummary = {
   id: string;
@@ -33,7 +30,6 @@ type SavedSummary = {
 export default function SummaryTab({ patient }: { patient: Patient }) {
   const { t, lang } = useLanguage();
   const [consented, setConsented] = useState(false);
-  const [consentTicked, setConsentTicked] = useState(false);
   const [days, setDays] = useState<(typeof PERIODS)[number]>(30);
   const [summaryLang, setSummaryLang] = useState<"en" | "zh">("en");
   const [generating, setGenerating] = useState(false);
@@ -56,20 +52,11 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
   useEffect(() => {
     async function start() {
       await Promise.resolve();
-      try {
-        setConsented(localStorage.getItem(CONSENT_KEY) === "yes");
-      } catch {}
+      setConsented(hasAiConsent());
       await loadSaved();
     }
     start();
   }, [loadSaved]);
-
-  function giveConsent() {
-    try {
-      localStorage.setItem(CONSENT_KEY, "yes");
-    } catch {}
-    setConsented(true);
-  }
 
   async function generate() {
     setGenerating(true);
@@ -153,28 +140,7 @@ export default function SummaryTab({ patient }: { patient: Patient }) {
     );
 
   // Consent notice before the first summary (third-party AI processing).
-  if (!consented) {
-    return (
-      <Card className="border-sky-700 bg-sky-50">
-        <h2 className="text-2xl font-bold text-slate-900">🔒 {t("consentTitle")}</h2>
-        <p className="mt-3 text-lg text-slate-900">{t("consentText1", { provider: AI_PROVIDER })}</p>
-        <p className="mt-2 text-lg text-slate-900">{t("consentText2")}</p>
-        <p className="mt-2 text-lg text-slate-900">{t("consentText3")}</p>
-        <label className="mt-4 flex cursor-pointer items-start gap-3 text-lg text-slate-900">
-          <input
-            type="checkbox"
-            checked={consentTicked}
-            onChange={(e) => setConsentTicked(e.target.checked)}
-            className="mt-1 h-6 w-6 accent-teal-700"
-          />
-          {t("consentCheck")}
-        </label>
-        <PrimaryButton className="mt-4" disabled={!consentTicked} onClick={giveConsent}>
-          {t("consentContinue")}
-        </PrimaryButton>
-      </Card>
-    );
-  }
+  if (!consented) return <AiConsentCard onAgree={() => setConsented(true)} />;
 
   return (
     <div className="flex flex-col gap-6">

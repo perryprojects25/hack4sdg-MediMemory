@@ -1,7 +1,7 @@
 "use client";
 
 // Medicines: list, add, edit, pause and delete. Shows the storage note clearly,
-// a rule-based duplicate warning, and the SIMULATED prescription sync.
+// a rule-based duplicate warning, the medicine safety check, and the SIMULATED prescription sync.
 
 import { useState } from "react";
 import { useLanguage } from "@/lib/language";
@@ -12,22 +12,25 @@ import {
   syncHospitalDemo,
   updateMedication,
 } from "@/lib/caregiver-data";
-import { findDuplicates } from "@/lib/duplicates";
 import { colorOption, shapeOption, shortTime } from "@/lib/medicine-options";
 import type { Medication, Patient } from "@/lib/types";
 import PillIcon from "@/components/PillIcon";
 import { Card, ErrorBox, PrimaryButton, SecondaryButton } from "@/components/ui";
 import MedicineForm from "../MedicineForm";
 import type { PatientData } from "./usePatientData";
+import SafetyCheck from "./SafetyCheck";
+import type { SafetyCheck as Safety } from "./useSafetyCheck";
 
 export default function MedicinesTab({
   patient,
   data,
   reload,
+  safety,
 }: {
   patient: Patient;
   data: PatientData;
   reload: () => Promise<void>;
+  safety: Safety;
 }) {
   const { t } = useLanguage();
   const [adding, setAdding] = useState(false);
@@ -36,7 +39,7 @@ export default function MedicinesTab({
   const [problem, setProblem] = useState(false);
 
   const meds = data.medications;
-  const duplicates = findDuplicates(meds);
+  const duplicates = safety.duplicates;
 
   async function run(id: string, action: () => Promise<unknown>) {
     setBusyId(id);
@@ -72,6 +75,8 @@ export default function MedicinesTab({
           <p className="mt-1">{t("dupText")}</p>
         </div>
       ))}
+
+      {meds.length > 0 && <SafetyCheck safety={safety} />}
 
       <PrescriptionSyncCard patient={patient} meds={meds} reload={reload} />
 
