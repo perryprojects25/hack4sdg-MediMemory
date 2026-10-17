@@ -44,9 +44,6 @@ export type Dose = {
   canUndo: boolean; // "I pressed this by mistake" is still allowed
 };
 
-// Who may undo a "taken": only the patient's own press (button or voice), and only for a short time.
-const PATIENT_LOGGERS = ["patient", "voice"];
-
 function toPatientDose(d: DoseInstance, now: Date): Dose {
   let status: PatientDoseStatus;
   if (d.status === "taken") status = "taken";
@@ -58,10 +55,9 @@ function toPatientDose(d: DoseInstance, now: Date): Dose {
 
   const minutesUntil = (new Date(d.scheduledFor).getTime() - now.getTime()) / MINUTE;
   const canTakeNow = status !== "taken" && (status !== "upcoming" || minutesUntil <= EARLY_TAKE_MINUTES);
-  const canUndo =
-    status === "taken" &&
-    PATIENT_LOGGERS.includes(d.takenBy ?? "") &&
-    now.getTime() - new Date(d.takenAt!).getTime() <= UNDO_MINUTES * MINUTE;
+  // The patient can undo a "taken" (theirs or the family's) only for a short time.
+  // After that only the family can, from the dashboard.
+  const canUndo = status === "taken" && now.getTime() - new Date(d.takenAt!).getTime() <= UNDO_MINUTES * MINUTE;
 
   return {
     medicationId: d.med.id,
@@ -185,21 +181,11 @@ export async function logDose(
   const supabase = getSupabaseAdmin();
   const base = { patient_id: patientId, medication_id: medicationId, scheduled_for: dose.scheduledFor };
 
-  // "I pressed this by mistake": remove the patient's own recent "taken", if still allowed.
+  // "I pressed this by mistake": remove the "taken" record(s) for this dose, if still allowed
+  // (the first one was made less than UNDO_MINUTES ago).
   if (action === "undo") {
     if (!dose.canUndo) return { result: "undoExpired" };
-    const { data: last, error: findError } = await supabase
-      .from("intake_logs")
-      .select("id")
-      .match({ ...base, status: "taken" })
-      .in("logged_by", PATIENT_LOGGERS)
-      .gte("logged_at", new Date(Date.now() - UNDO_MINUTES * MINUTE).toISOString())
-      .order("logged_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (findError) throw new Error(findError.message);
-    if (!last) return { result: "undoExpired" };
-    const { error } = await supabase.from("intake_logs").delete().eq("id", last.id);
+    const { error } = await supabase.from("intake_logs").delete().match({ ...base, status: "taken" });
     if (error) throw new Error(error.message);
     return { result: "undone" };
   }

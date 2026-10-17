@@ -1,11 +1,12 @@
 "use client";
 
 // Today: a timeline of today's doses with their status and who logged them.
-// "Mark as taken" lets the caregiver record a dose the patient forgot to confirm.
+// "Mark as taken" lets the caregiver record a dose the patient forgot to confirm,
+// and "Mark as not taken" corrects a dose that was confirmed by mistake.
 
 import { useState } from "react";
 import { useLanguage } from "@/lib/language";
-import { markTakenByCaregiver } from "@/lib/caregiver-data";
+import { markNotTakenByCaregiver, markTakenByCaregiver } from "@/lib/caregiver-data";
 import { hongKongDate, type DoseInstance } from "@/lib/doses";
 import { formatTime } from "@/lib/time";
 import type { Patient } from "@/lib/types";
@@ -43,12 +44,21 @@ export default function TodayTab({
   const doses = data.doses.filter((d) => d.date === today);
   const taken = doses.filter((d) => d.status === "taken").length;
 
-  async function mark(dose: DoseInstance) {
+  async function mark(dose: DoseInstance, taken: boolean) {
     const key = `${dose.med.id}-${dose.scheduledFor}`;
+    if (
+      !taken &&
+      !window.confirm(
+        t("markNotTakenConfirm", { med: dose.med.name, time: formatTime(dose.scheduledFor, lang), name: patient.name })
+      )
+    ) {
+      return;
+    }
     setMarking(key);
     setProblem(false);
     try {
-      await markTakenByCaregiver(patient.id, dose.med.id, dose.scheduledFor);
+      if (taken) await markTakenByCaregiver(patient.id, dose.med.id, dose.scheduledFor);
+      else await markNotTakenByCaregiver(patient.id, dose.med.id, dose.scheduledFor);
       await reload();
     } catch (err) {
       console.error(err);
@@ -110,11 +120,21 @@ export default function TodayTab({
                   {CAN_MARK.has(dose.status) && (
                     <button
                       type="button"
-                      onClick={() => mark(dose)}
+                      onClick={() => mark(dose, true)}
                       disabled={marking === key}
                       className="min-h-12 rounded-full border-2 border-green-700 px-4 text-base font-semibold text-green-900 hover:bg-green-50 disabled:opacity-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-green-300"
                     >
                       {marking === key ? t("saving") : `✓ ${t("markTaken")}`}
+                    </button>
+                  )}
+                  {dose.status === "taken" && (
+                    <button
+                      type="button"
+                      onClick={() => mark(dose, false)}
+                      disabled={marking === key}
+                      className="min-h-12 rounded-full border-2 border-slate-500 px-4 text-base font-semibold text-slate-900 hover:bg-slate-50 disabled:opacity-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
+                    >
+                      {marking === key ? t("saving") : `↩ ${t("markNotTaken")}`}
                     </button>
                   )}
                 </div>

@@ -224,6 +224,27 @@ export async function markTakenByCaregiver(
   return true;
 }
 
+// "Mark as not taken" by the caregiver: removes every "taken" record for this dose
+// (whoever confirmed it). If the dose is still within its time window, the patient
+// is reminded again; otherwise it counts as missed.
+export async function markNotTakenByCaregiver(
+  patientId: string,
+  medicationId: string,
+  scheduledFor: string
+): Promise<void> {
+  const supabase = getSupabaseBrowser();
+  must(
+    await supabase
+      .from("intake_logs")
+      .delete()
+      .eq("patient_id", patientId)
+      .eq("medication_id", medicationId)
+      .eq("scheduled_for", scheduledFor)
+      .eq("status", "taken")
+      .select("id")
+  );
+}
+
 // Edit a medicine and replace its daily times.
 export async function updateMedication(
   medicationId: string,

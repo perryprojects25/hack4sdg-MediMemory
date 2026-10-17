@@ -3,6 +3,7 @@
 // Opened by tapping a medicine in today's list. One medicine, big, and only the
 // choices that are safe for its state:
 // - taken: shows when; "I pressed this by mistake" only for a few minutes afterwards
+//   (after that the family can still change it from the dashboard)
 // - not time yet: "I took it" from up to an hour before, otherwise "I'll remind you then"
 // - not taken (missed): "I already took it", to record it; it never says "take it now"
 

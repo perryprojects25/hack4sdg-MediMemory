@@ -21,7 +21,8 @@ export const MISSED_AFTER_MINUTES = 90;
 // (for example when taking it with an early breakfast).
 export const EARLY_TAKE_MINUTES = 60;
 
-// "I pressed this by mistake" works for this many minutes after the patient
-// confirmed a dose. After that only the caregiver can correct it, because
-// undoing a dose that was really taken could lead to a double dose.
+// On the patient screen, "I pressed this by mistake" works for this many minutes after
+// a dose was confirmed (by the patient or the family). After that only the caregiver
+// can correct it ("Mark as not taken"), because undoing a dose that was really taken
+// could lead to a double dose.
 export const UNDO_MINUTES = 15;

@@ -277,6 +277,8 @@ export const translations = {
     loggedAt: "Confirmed at {time} by {who}",
     doubleDoseFlag: "Confirmed more than once: possible double dose",
     markTaken: "Mark as taken",
+    markNotTaken: "Mark as not taken",
+    markNotTakenConfirm: "Mark {med} at {time} as not taken? Only do this if {name} did not take it. {name} may be reminded again.",
 
     // Adherence tab
     adhWeekTitle: "This week",
@@ -730,6 +732,8 @@ export const translations = {
     loggedAt: "{who}於 {time} 確認",
     doubleDoseFlag: "確認多於一次：可能重複服藥",
     markTaken: "標記為已服用",
+    markNotTaken: "改為未服用",
+    markNotTakenConfirm: "把 {time} 的{med}改為未服用？只在{name}確實未服用時才這樣做。{name}可能會再收到提醒。",
 
     adhWeekTitle: "本星期",
     adhWeekDetail: "過去 7 日服用了 {taken} / {total} 次",
