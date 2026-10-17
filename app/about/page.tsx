@@ -19,6 +19,7 @@ const ETHICS: TranslationKey[] = [
   "aboutEthics5",
   "aboutEthics6",
   "aboutEthics7",
+  "aboutEthics8",
 ];
 // The point marked with a star, explained in the note under the list.
 const STARRED: TranslationKey = "aboutEthics2";

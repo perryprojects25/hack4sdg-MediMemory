@@ -1,6 +1,8 @@
 "use client";
 
 // Step 2: add the person you care for.
+// A new person can only be saved after the caregiver confirms that the person, or
+// their legal guardian, agreed to their medical information being entered.
 
 import { useState } from "react";
 import { useLanguage } from "@/lib/language";
@@ -25,7 +27,9 @@ export default function StepPatient({
   const [age, setAge] = useState(existing?.age?.toString() ?? "");
   const [language, setLanguage] = useState<"en" | "zh">(existing?.preferred_language ?? "zh");
   const [notes, setNotes] = useState(existing?.notes ?? "");
-  const [errors, setErrors] = useState<{ name?: TranslationKey; age?: TranslationKey }>({});
+  // Editing someone already added: consent was confirmed when they were added.
+  const [consent, setConsent] = useState(Boolean(existing));
+  const [errors, setErrors] = useState<{ name?: TranslationKey; age?: TranslationKey; consent?: TranslationKey }>({});
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -36,6 +40,7 @@ export default function StepPatient({
     const newErrors: typeof errors = {};
     if (!cleanName) newErrors.name = "errNameRequired";
     if (!Number.isInteger(ageNumber) || ageNumber < 1 || ageNumber > 130) newErrors.age = "errAgeInvalid";
+    if (!consent) newErrors.consent = "errConsent";
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -124,6 +129,35 @@ export default function StepPatient({
             />
           )}
         </Field>
+
+        {/* Consent of the person, or their legal guardian (required for a new person) */}
+        {!existing && (
+          <fieldset
+            className={`rounded-2xl border-2 p-4 ${errors.consent ? "border-red-700 bg-red-50" : "border-sky-700 bg-sky-50"}`}
+          >
+            <legend className="px-1 text-xl font-semibold text-slate-900">{t("s2ConsentTitle")}</legend>
+            <p className="text-lg text-slate-800">{t("s2ConsentHint")}</p>
+            <label className="mt-3 flex cursor-pointer items-start gap-3 text-lg text-slate-900">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => {
+                  setConsent(e.target.checked);
+                  if (e.target.checked) setErrors({ ...errors, consent: undefined });
+                }}
+                aria-invalid={Boolean(errors.consent)}
+                aria-describedby={errors.consent ? "consent-error" : undefined}
+                className="mt-1 h-6 w-6 shrink-0 accent-teal-700"
+              />
+              {name.trim() ? t("s2Consent", { name: name.trim() }) : t("s2ConsentNoName")}
+            </label>
+            {errors.consent && (
+              <p id="consent-error" role="alert" className="mt-2 text-lg font-semibold text-red-800">
+                {t(errors.consent)}
+              </p>
+            )}
+          </fieldset>
+        )}
       </div>
 
       <WizardNav onBack={onBack} onNext={saveAndContinue} busy={saving} />
