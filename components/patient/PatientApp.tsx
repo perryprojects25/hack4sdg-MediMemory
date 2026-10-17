@@ -12,7 +12,7 @@ import { DEMO_MODE } from "@/lib/demo-mode";
 import PinScreen from "./PinScreen";
 import UsernameScreen from "./UsernameScreen";
 import DoseScreen from "./DoseScreen";
-import { AllDoneScreen, Center, MessageScreen, TakenListScreen } from "./Screens";
+import { AllDoneScreen, Center, MessageScreen } from "./Screens";
 
 // The device remembers the patient id and PIN, so the PIN is only typed once.
 // (Prototype: kept in this browser's storage. A real app would use a secure device token.)
@@ -31,8 +31,7 @@ type View =
   | { kind: "home" }
   | { kind: "success"; name: string; time: string }
   | { kind: "already"; time: string }
-  | { kind: "snoozed"; time: string }
-  | { kind: "takenList" };
+  | { kind: "snoozed"; time: string };
 
 function readDevice(): Credentials | null {
   try {
@@ -284,9 +283,6 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
         />
       );
 
-    case "takenList":
-      return <TakenListScreen doses={doses.filter((d) => d.status === "taken")} onBack={backHome} />;
-
     case "home": {
       const due = doses.filter((d) => d.status === "due");
       if (due.length > 0) {
@@ -303,18 +299,9 @@ export default function PatientApp({ linkId }: { linkId: string | null }) {
         );
       }
 
-      // Nothing due: show when the next one is (a snoozed dose comes back at its snooze time).
-      const nextTimes = doses
-        .map((d) => (d.status === "upcoming" ? d.scheduledFor : d.status === "snoozed" ? d.snoozedUntil : null))
-        .filter((time): time is string => time !== null)
-        .sort();
+      // Nothing due: the next medicine and today's list.
       return (
-        <AllDoneScreen
-          patientName={patient?.name ?? ""}
-          nextTime={nextTimes[0] ? formatTime(nextTimes[0], lang) : null}
-          onShowTaken={() => setView({ kind: "takenList" })}
-          onSwitchPerson={switchPerson}
-        />
+        <AllDoneScreen patientName={patient?.name ?? ""} doses={doses} onSwitchPerson={switchPerson} />
       );
     }
   }

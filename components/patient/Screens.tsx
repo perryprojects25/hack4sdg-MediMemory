@@ -1,6 +1,6 @@
 "use client";
 
-// Simple full-screen messages for the patient: success, already taken, all done, etc.
+// Simple full-screen messages for the patient: success, already taken, all done (with today's list), etc.
 
 import { useEffect } from "react";
 import { useLanguage } from "@/lib/language";
@@ -61,40 +61,85 @@ export function MessageScreen({
   );
 }
 
+// Shown when nothing is due: the next medicine, and today's list with what is
+// already taken. It answers "Did I already take it?" at a glance, with pictures.
+// There is nothing to press here; doses are confirmed on the reminder screen.
 export function AllDoneScreen({
   patientName,
-  nextTime,
-  onShowTaken,
+  doses,
   onSwitchPerson,
 }: {
   patientName: string;
-  nextTime: string | null;
-  onShowTaken: () => void;
+  doses: Dose[]; // today's doses (none of them due right now)
   onSwitchPerson: () => void;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const greeting = hongKongHour() < 12 ? t("pGreetingMorning", { name: patientName }) : t("pGreeting", { name: patientName });
+
+  const today = [...doses].sort((a, b) => a.scheduledFor.localeCompare(b.scheduledFor));
+  const takenCount = today.filter((d) => d.status === "taken").length;
+  // The next one: an upcoming dose, or a snoozed one that comes back at its reminder time.
+  const comingAt = (d: Dose) => (d.status === "snoozed" ? d.snoozedUntil : d.status === "upcoming" ? d.scheduledFor : null);
+  const next = today
+    .filter((d) => comingAt(d) !== null)
+    .sort((a, b) => comingAt(a)!.localeCompare(comingAt(b)!))[0];
+
+  function statusText(d: Dose) {
+    if (d.status === "taken") return `✓ ${t("pStatusTaken", { time: formatTime(d.takenAt!, lang) })}`;
+    if (d.status === "snoozed") return `⏰ ${t("pStatusSnoozed", { time: formatTime(d.snoozedUntil!, lang) })}`;
+    if (d.status === "closed") return t("pStatusClosed");
+    return `🕗 ${t("pStatusLater", { time: formatTime(d.scheduledFor, lang) })}`;
+  }
 
   return (
     <Center>
       <p className="text-3xl font-semibold text-slate-900">{greeting}</p>
-      <div
-        className="mt-6 flex h-40 w-40 items-center justify-center rounded-full bg-green-100 text-8xl"
-        aria-hidden="true"
-      >
-        😊
-      </div>
-      <h1 className="mt-6 text-4xl font-bold text-slate-900">{t("pAllDone")}</h1>
-      <p className="mt-4 text-3xl text-slate-900">
-        {nextTime ? `🕗 ${t("pNextAt", { time: nextTime })}` : t("pNoMoreToday")}
-      </p>
-      <button
-        type="button"
-        onClick={onShowTaken}
-        className={`${bigButton} mt-8 border-4 border-teal-700 bg-white text-teal-900 hover:bg-teal-50 focus-visible:ring-teal-300`}
-      >
-        📋 {t("pWhatTaken")}
-      </button>
+      <h1 className="mt-2 text-4xl font-bold text-slate-900">{t("pAllDone")}</h1>
+      {today.length > 0 && (
+        <p className="mt-2 text-2xl font-semibold text-green-800">✓ {t("pProgress", { n: takenCount, total: today.length })}</p>
+      )}
+
+      {/* The next medicine, big */}
+      {next ? (
+        <div className="mt-6 flex w-full items-center gap-4 rounded-3xl border-4 border-teal-700 bg-teal-50 p-4 text-left">
+          <PillIcon shape={next.shape} color={next.color} size={80} />
+          <div>
+            <p className="text-2xl font-semibold text-teal-900">{t("pNextTitle")}</p>
+            <p className="text-3xl font-bold text-slate-900">{next.name}</p>
+            <p className="text-2xl text-slate-900">{next.dose}</p>
+            <p className="text-2xl font-semibold text-slate-900">🕗 {formatTime(comingAt(next)!, lang)}</p>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-6 text-3xl text-slate-900">{today.length > 0 ? t("pNoMoreToday") : t("pNoMedsToday")}</p>
+      )}
+
+      {/* Everything for today, in time order */}
+      {today.length > 0 && (
+        <section className="mt-6 w-full text-left" aria-labelledby="today-title">
+          <h2 id="today-title" className="text-3xl font-bold text-slate-900">
+            {t("pTodayTitle")}
+          </h2>
+          <ul className="mt-3 flex flex-col gap-3">
+            {today.map((d) => (
+              <li
+                key={`${d.medicationId}-${d.scheduledFor}`}
+                className={`flex items-center gap-4 rounded-3xl border-2 p-3 ${
+                  d.status === "taken" ? "border-green-700 bg-green-50" : "border-slate-400 bg-white"
+                }`}
+              >
+                <PillIcon shape={d.shape} color={d.color} size={52} />
+                <div>
+                  <p className="text-2xl font-bold text-slate-900">{d.name}</p>
+                  <p className={`text-2xl ${d.status === "taken" ? "font-semibold text-green-900" : "text-slate-800"}`}>
+                    {statusText(d)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {/* For shared devices: sign in as a different person */}
       <button
         type="button"
@@ -102,42 +147,6 @@ export function AllDoneScreen({
         className="mt-8 min-h-12 text-xl font-semibold text-teal-800 underline underline-offset-4 focus:outline-none focus-visible:ring-4 focus-visible:ring-teal-300"
       >
         {t("pNotYou", { name: patientName })}
-      </button>
-    </Center>
-  );
-}
-
-// Answers the question the whole app is about: "Did I already take it?"
-export function TakenListScreen({ doses, onBack }: { doses: Dose[]; onBack: () => void }) {
-  const { t, lang } = useLanguage();
-
-  return (
-    <Center>
-      <h1 className="text-4xl font-bold text-slate-900">{t("pTakenToday")}</h1>
-      {doses.length === 0 ? (
-        <p className="mt-6 text-3xl text-slate-900">{t("pNothingTaken")}</p>
-      ) : (
-        <ul className="mt-6 flex w-full flex-col gap-3 text-left">
-          {doses.map((dose) => (
-            <li
-              key={`${dose.medicationId}-${dose.scheduledFor}`}
-              className="flex items-center gap-4 rounded-3xl border-2 border-green-700 bg-green-50 p-4"
-            >
-              <PillIcon shape={dose.shape} color={dose.color} size={56} />
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{dose.name}</p>
-                <p className="text-2xl text-slate-900">✓ {formatTime(dose.takenAt!, lang)}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-      <button
-        type="button"
-        onClick={onBack}
-        className={`${bigButton} mt-8 bg-teal-700 text-white hover:bg-teal-800 focus-visible:ring-teal-300`}
-      >
-        ← {t("pBack")}
       </button>
     </Center>
   );
