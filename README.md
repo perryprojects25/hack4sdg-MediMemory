@@ -134,7 +134,7 @@ Next.js (TypeScript) · Tailwind CSS · Supabase (Postgres) · Google Gemini API
 
 ## Team
 
-Anas Asim · Yousuf Khursheed · Danali Satybaldy · Sakief Jamil · Mustafa Ali · Lok To In
+Anas Asim · Yousuf Khursheed · Danali Satybaldy · Sakief Jamil · Mustafa Ali · Team Lok To In
 Hong Kong University of Science and Technology (HKUST)
 
 ---
